@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Laporan Data Pendaftar</title>
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #eeeeee;
+            color: #222;
+        }
+
+        /* =========================
+           KERTAS A4 LANDSCAPE
+        ========================= */
+
+        .halaman {
+            width: 297mm;
+            min-height: 210mm;
+
+            margin: 30px auto;
+            padding: 15mm;
+
+            background: white;
+
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.15);
+        }
+
+
+        /* =========================
+           KOP SEKOLAH
+        ========================= */
+
+        .kop {
+            position: relative;
+
+            min-height: 135px;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo {
+            position: absolute;
+
+            left: 25px;
+            top: 50%;
+
+            transform: translateY(-50%);
+
+            width: 105px;
+            height: 105px;
+
+            object-fit: contain;
+        }
+
+        .identitas {
+            width: 100%;
+
+            text-align: center;
+        }
+
+        .nama-sekolah {
+            font-size: 27px;
+
+            font-weight: bold;
+
+            color: #075c3b;
+
+            letter-spacing: 0.5px;
+        }
+
+        .jenis-sekolah {
+            margin-top: 4px;
+
+            font-size: 15px;
+
+            font-weight: bold;
+
+            letter-spacing: 1px;
+        }
+
+        .alamat {
+            margin-top: 8px;
+
+            font-size: 11px;
+
+            line-height: 1.5;
+        }
+
+        .kontak {
+            margin-top: 3px;
+
+            font-size: 10px;
+
+            line-height: 1.5;
+        }
+
+
+        /* =========================
+           GARIS KOP
+        ========================= */
+
+        .garis-kop {
+            margin-top: 12px;
+
+            border-top: 3px solid #075c3b;
+        }
+
+        .garis-kop::after {
+            content: "";
+
+            display: block;
+
+            margin-top: 3px;
+
+            border-top: 1px solid #075c3b;
+        }
+
+
+        /* =========================
+           JUDUL
+        ========================= */
+
+        .judul {
+            text-align: center;
+
+            margin-top: 25px;
+            margin-bottom: 20px;
+        }
+
+        .judul h1 {
+            font-size: 20px;
+
+            margin-bottom: 5px;
+        }
+
+        .judul p {
+            font-size: 12px;
+
+            margin-top: 3px;
+        }
+
+        .tahun {
+            font-weight: bold;
+        }
+
+
+        /* =========================
+           RINGKASAN
+        ========================= */
+
+        .ringkasan {
+            display: grid;
+
+            grid-template-columns: repeat(4, 1fr);
+
+            gap: 12px;
+
+            margin-bottom: 20px;
+        }
+
+        .box-ringkasan {
+            border: 1px solid #d5dcd8;
+
+            border-radius: 7px;
+
+            padding: 10px;
+
+            text-align: center;
+        }
+
+        .box-ringkasan p {
+            font-size: 10px;
+
+            color: #64748b;
+        }
+
+        .box-ringkasan h2 {
+            margin-top: 4px;
+
+            font-size: 20px;
+
+            color: #075c3b;
+        }
+
+
+        /* =========================
+           TABEL
+        ========================= */
+
+        table {
+            width: 100%;
+
+            border-collapse: collapse;
+
+            table-layout: fixed;
+
+            font-size: 10px;
+        }
+
+        th,
+        td {
+            border: 1px solid #9da8a3;
+
+            padding: 8px 6px;
+
+            text-align: center;
+
+            vertical-align: middle;
+        }
+
+        th {
+            background: #075c3b;
+
+            color: white;
+
+            font-weight: bold;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f5f9f7;
+        }
+
+        th:nth-child(1),
+        td:nth-child(1) {
+            width: 5%;
+        }
+
+        th:nth-child(2),
+        td:nth-child(2) {
+            width: 16%;
+        }
+
+        th:nth-child(3),
+        td:nth-child(3) {
+            width: 20%;
+        }
+
+        th:nth-child(4),
+        td:nth-child(4) {
+            width: 19%;
+        }
+
+        th:nth-child(5),
+        td:nth-child(5) {
+            width: 12%;
+        }
+
+        th:nth-child(6),
+        td:nth-child(6) {
+            width: 12%;
+        }
+
+        th:nth-child(7),
+        td:nth-child(7) {
+            width: 16%;
+        }
+
+
+        /* =========================
+           STATUS
+        ========================= */
+
+        .status {
+            display: inline-block;
+
+            padding: 4px 9px;
+
+            border-radius: 20px;
+
+            font-size: 9px;
+
+            font-weight: bold;
+        }
+
+        .diproses {
+            background: #fff3cd;
+
+            color: #856404;
+        }
+
+        .diverifikasi {
+            background: #d1e7dd;
+
+            color: #0f5132;
+        }
+
+        .diterima {
+            background: #cfe2ff;
+
+            color: #084298;
+        }
+
+
+        /* =========================
+           REKAP JURUSAN
+        ========================= */
+
+        .rekap {
+            margin-top: 25px;
+        }
+
+        .rekap h3 {
+            font-size: 13px;
+
+            margin-bottom: 10px;
+
+            color: #075c3b;
+        }
+
+        .rekap-container {
+            display: grid;
+
+            grid-template-columns: repeat(3, 1fr);
+
+            gap: 12px;
+        }
+
+        .rekap-item {
+            border: 1px solid #cbd5d0;
+
+            padding: 10px;
+
+            border-radius: 6px;
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            font-size: 10px;
+        }
+
+        .rekap-item strong {
+            color: #075c3b;
+
+            font-size: 15px;
+        }
+
+
+        /* =========================
+           TOTAL
+        ========================= */
+
+        .total-keseluruhan {
+            margin-top: 12px;
+
+            padding: 10px 15px;
+
+            background: #f1f7f4;
+
+            border: 1px solid #cbded3;
+
+            border-radius: 6px;
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            font-size: 11px;
+
+            font-weight: bold;
+        }
+
+        .total-keseluruhan span {
+            font-size: 18px;
+
+            color: #075c3b;
+        }
+
+
+        /* =========================
+           TANGGAL
+        ========================= */
+
+        .tanggal-cetak {
+            margin-top: 12px;
+
+            font-size: 9px;
+
+            color: #64748b;
+        }
+
+
+        /* =========================
+           TANDA TANGAN
+        ========================= */
+
+        .ttd-container {
+            display: grid;
+
+            grid-template-columns: 1fr 1fr;
+
+            gap: 100px;
+
+            margin-top: 25px;
+        }
+
+        .ttd {
+            text-align: center;
+
+            font-size: 11px;
+        }
+
+        .ttd p {
+            line-height: 1.5;
+        }
+
+        .ruang-ttd {
+            height: 55px;
+        }
+
+        .nama-ttd {
+            font-weight: bold;
+
+            text-decoration: underline;
+        }
+
+        .jabatan-ttd {
+            margin-bottom: 3px;
+        }
+
+
+        /* =========================
+           TOMBOL
+        ========================= */
+
+        .aksi {
+            position: fixed;
+
+            bottom: 20px;
+            right: 20px;
+
+            display: flex;
+
+            gap: 8px;
+        }
+
+        button {
+            border: none;
+
+            padding: 11px 18px;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            font-weight: bold;
+
+            color: white;
+
+            background: #075c3b;
+        }
+
+        button.tutup {
+            background: #64748b;
+        }
+
+
+        /* =========================
+           PRINT A4 LANDSCAPE
+        ========================= */
+
+        @page {
+            size: A4 landscape;
+            margin: 15mm;
+        }
+
+        @media print {
+
+            body {
+                background: white;
+            }
+
+            .halaman {
+                width: 100%;
+
+                min-height: auto;
+
+                margin: 0;
+
+                padding: 0;
+
+                box-shadow: none;
+            }
+
+            .aksi {
+                display: none;
+            }
+        }
+
+    </style>
+</head>
+
+
+<body>
+
+
+<div class="halaman">
+
+
+    <!-- =========================
+         KOP SEKOLAH
+    ========================= -->
+
+    <header class="kop">
+
+        <img
+            src="logo-smk.png"
+            alt="Logo SMK Ma'arif Walisongo Kajoran"
+            class="logo"
+        >
+
+        <div class="identitas">
+
+            <div class="nama-sekolah">
+                SMK MA'ARIF WALISONGO KAJORAN
+            </div>
+
+            <div class="jenis-sekolah">
+                SEKOLAH MENENGAH KEJURUAN
+            </div>
+
+            <div class="alamat">
+                Jl. KH Ridwan Sidowangi Kajoran Magelang Jawa Tengah 56163
+            </div>
+
+            <div class="kontak">
+                Telp/WA: (0293) 3195678
+                &nbsp; | &nbsp;
+                Email: smkmwalisongokajoran@yahoo.com
+            </div>
+
+            <div class="kontak">
+                Website: smkmaarifwalisongokajoran.sch.id
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <div class="garis-kop"></div>
+
+
+    <!-- =========================
+         JUDUL LAPORAN
+    ========================= -->
+
+    <section class="judul">
+
+        <h1>
+            LAPORAN DATA PENDAFTAR
+        </h1>
+
+        <p>
+            SPMB SMK MA'ARIF WALISONGO KAJORAN
+        </p>
+
+        <p class="tahun">
+            TAHUN PELAJARAN 2027/2028
+        </p>
+
+    </section>
+
+
+    <!-- =========================
+         RINGKASAN
+    ========================= -->
+
+    <section class="ringkasan">
+
+        <div class="box-ringkasan">
+            <p>Total Pendaftar</p>
+            <h2 id="totalPendaftar">0</h2>
+        </div>
+
+        <div class="box-ringkasan">
+            <p>Diverifikasi</p>
+            <h2 id="totalDiverifikasi">0</h2>
+        </div>
+
+        <div class="box-ringkasan">
+            <p>Sedang Diproses</p>
+            <h2 id="totalDiproses">0</h2>
+        </div>
+
+        <div class="box-ringkasan">
+            <p>Diterima</p>
+            <h2 id="totalDiterima">0</h2>
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         TABEL PENDAFTAR
+    ========================= -->
+
+    <table>
+
+        <thead>
+
+            <tr>
+                <th>No.</th>
+                <th>No. Pendaftaran</th>
+                <th>Nama Lengkap</th>
+                <th>Asal Sekolah</th>
+                <th>Jurusan 1</th>
+                <th>Jurusan 2</th>
+                <th>Status</th>
+            </tr>
+
+        </thead>
+
+
+        <tbody id="dataPendaftar"></tbody>
+
+    </table>
+
+
+    <!-- =========================
+         REKAP JURUSAN
+    ========================= -->
+
+    <section class="rekap">
+
+        <h3>
+            REKAPITULASI PENDAFTAR PER JURUSAN
+        </h3>
+
+
+        <div class="rekap-container">
+
+            <div class="rekap-item">
+
+                <span>
+                    Pengembangan Perangkat Lunak dan Gim (PPLG)
+                </span>
+
+                <strong id="jumlahPPLG">
+                    0
+                </strong>
+
+            </div>
+
+
+            <div class="rekap-item">
+
+                <span>
+                    Broadcasting dan Perfilman (BCF)
+                </span>
+
+                <strong id="jumlahBCF">
+                    0
+                </strong>
+
+            </div>
+
+
+            <div class="rekap-item">
+
+                <span>
+                    Manajemen Perkantoran dan Layanan Bisnis (MPLB)
+                </span>
+
+                <strong id="jumlahMPLB">
+                    0
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <!-- TOTAL KESELURUHAN -->
+
+        <div class="total-keseluruhan">
+
+            <span>
+                TOTAL PENDAFTAR KESELURUHAN
+            </span>
+
+            <span id="totalKeseluruhan">
+                0
+            </span>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================
+         TANGGAL
+    ========================= -->
+
+    <div class="tanggal-cetak">
+
+        Dicetak pada:
+        <span id="tanggalCetak"></span>
+
+    </div>
+
+
+    <!-- =========================
+         TANDA TANGAN
+    ========================= -->
+
+    <div class="ttd-container">
+
+
+        <!-- PANITIA -->
+
+        <div class="ttd">
+
+            <p>
+                Mengetahui,
+            </p>
+
+            <p class="jabatan-ttd">
+                Panitia SPMB
+            </p>
+
+            <div class="ruang-ttd"></div>
+
+            <p class="nama-ttd">
+                __________________________
+            </p>
+
+            <p>
+                NIP/NIK. __________________
+            </p>
+
+        </div>
+
+
+        <!-- KEPALA SEKOLAH -->
+
+        <div class="ttd">
+
+            <p>
+                Kajoran,
+                <span id="tanggalSurat"></span>
+            </p>
+
+            <p class="jabatan-ttd">
+                Kepala SMK Ma'arif Walisongo Kajoran
+            </p>
+
+            <div class="ruang-ttd"></div>
+
+            <p class="nama-ttd">
+                __________________________
+            </p>
+
+            <p>
+                NIP/NIK. __________________
+            </p>
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+<!-- =========================
+     TOMBOL
+========================= -->
+
+<div class="aksi">
+
+    <button onclick="window.print()">
+        🖨 Cetak / Simpan PDF
+    </button>
+
+    <button
+        class="tutup"
+        onclick="window.close()"
+    >
+        Tutup
+    </button>
+
+</div>
+
+
+
+<script>
+
+
+    /* =========================
+       DATA CONTOH
+    ========================= */
+
+    const data = [
+
+        {
+            nomor: "SPMB-2027-000123",
+            nama: "Calon Siswa 1",
+            sekolah: "SMP N 1 Kajoran",
+            jurusan1: "PPLG",
+            jurusan2: "BCF",
+            status: "Diproses"
+        },
+
+        {
+            nomor: "SPMB-2027-000124",
+            nama: "Calon Siswa 2",
+            sekolah: "MTs N 2 Magelang",
+            jurusan1: "BCF",
+            jurusan2: "MPLB",
+            status: "Diverifikasi"
+        },
+
+        {
+            nomor: "SPMB-2027-000125",
+            nama: "Calon Siswa 3",
+            sekolah: "SMP N 2 Kajoran",
+            jurusan1: "MPLB",
+            jurusan2: "PPLG",
+            status: "Diterima"
+        }
+
+    ];
+
+
+    /* =========================
+       TABEL OTOMATIS
+    ========================= */
+
+    const tabel =
+        document.getElementById("dataPendaftar");
+
+
+    data.forEach((pendaftar, index) => {
+
+        let classStatus = "";
+
+
+        if (pendaftar.status === "Diproses") {
+
+            classStatus = "diproses";
+
+        }
+
+        else if (pendaftar.status === "Diverifikasi") {
+
+            classStatus = "diverifikasi";
+
+        }
+
+        else if (pendaftar.status === "Diterima") {
+
+            classStatus = "diterima";
+
+        }
+
+
+        tabel.innerHTML += `
+
+            <tr>
+
+                <td>
+                    ${index + 1}
+                </td>
+
+                <td>
+                    ${pendaftar.nomor}
+                </td>
+
+                <td>
+                    ${pendaftar.nama}
+                </td>
+
+                <td>
+                    ${pendaftar.sekolah}
+                </td>
+
+                <td>
+                    ${pendaftar.jurusan1}
+                </td>
+
+                <td>
+                    ${pendaftar.jurusan2}
+                </td>
+
+                <td>
+
+                    <span class="status ${classStatus}">
+                        ${pendaftar.status}
+                    </span>
+
+                </td>
+
+            </tr>
+
+        `;
+
+    });
+
+
+    /* =========================
+       TOTAL PENDAFTAR
+    ========================= */
+
+    const total =
+        data.length;
+
+
+    document.getElementById(
+        "totalPendaftar"
+    ).textContent = total;
+
+
+    document.getElementById(
+        "totalKeseluruhan"
+    ).textContent = total;
+
+
+    /* =========================
+       TOTAL BERDASARKAN STATUS
+    ========================= */
+
+    document.getElementById(
+        "totalDiverifikasi"
+    ).textContent = data.filter(
+        p => p.status === "Diverifikasi"
+    ).length;
+
+
+    document.getElementById(
+        "totalDiproses"
+    ).textContent = data.filter(
+        p => p.status === "Diproses"
+    ).length;
+
+
+    document.getElementById(
+        "totalDiterima"
+    ).textContent = data.filter(
+        p => p.status === "Diterima"
+    ).length;
+
+
+    /* =========================
+       REKAP JURUSAN
+       
+       Setiap pilihan jurusan
+       dihitung sebagai pendaftar.
+    ========================= */
+
+    let jumlahPPLG = 0;
+    let jumlahBCF = 0;
+    let jumlahMPLB = 0;
+
+
+    data.forEach(pendaftar => {
+
+
+        if (pendaftar.jurusan1 === "PPLG") {
+            jumlahPPLG++;
+        }
+
+        if (pendaftar.jurusan2 === "PPLG") {
+            jumlahPPLG++;
+        }
+
+
+        if (pendaftar.jurusan1 === "BCF") {
+            jumlahBCF++;
+        }
+
+        if (pendaftar.jurusan2 === "BCF") {
+            jumlahBCF++;
+        }
+
+
+        if (pendaftar.jurusan1 === "MPLB") {
+            jumlahMPLB++;
+        }
+
+        if (pendaftar.jurusan2 === "MPLB") {
+            jumlahMPLB++;
+        }
+
+    });
+
+
+    document.getElementById(
+        "jumlahPPLG"
+    ).textContent = jumlahPPLG;
+
+
+    document.getElementById(
+        "jumlahBCF"
+    ).textContent = jumlahBCF;
+
+
+    document.getElementById(
+        "jumlahMPLB"
+    ).textContent = jumlahMPLB;
+
+
+    /* =========================
+       TANGGAL OTOMATIS
+    ========================= */
+
+    const tanggal =
+        new Date().toLocaleDateString(
+            "id-ID",
+            {
+                day: "numeric",
+                month: "long",
+                year: "numeric"
+            }
+        );
+
+
+    document.getElementById(
+        "tanggalCetak"
+    ).textContent = tanggal;
+
+
+    document.getElementById(
+        "tanggalSurat"
+    ).textContent = tanggal;
+
+
+</script>
+
+
+</body>
+</html>
