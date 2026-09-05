@@ -677,8 +677,7 @@
                             <div class="field"><span class="field-label">Nama Lengkap</span><span class="field-sep">:</span><span class="field-val" id="val_nama">Calon Siswa 1</span></div>
                             <div class="field"><span class="field-label">NISN</span><span class="field-sep">:</span><span class="field-val" id="val_nisn">0081234567</span></div>
                             <div class="field"><span class="field-label">Asal Sekolah</span><span class="field-sep">:</span><span class="field-val" id="val_sekolah">SMP N 1 Kajoran</span></div>
-                            <div class="field"><span class="field-label">Tempat Lahir</span><span class="field-sep">:</span><span class="field-val" id="val_tempatLahir">Magelang</span></div>
-                            <div class="field"><span class="field-label">Tanggal Lahir</span><span class="field-sep">:</span><span class="field-val" id="val_tglLahir">20 Mei 2008</span></div>
+                            <div class="field"><span class="field-label">Tempat, Tanggal Lahir</span><span class="field-sep">:</span><span class="field-val" id="val_ttl">Magelang, 20 Mei 2008</span></div>
                             <div class="field"><span class="field-label">Jenis Kelamin</span><span class="field-sep">:</span><span class="field-val" id="val_jk">Laki-laki</span></div>
                         </div>
                         <div class="field-list">
@@ -795,6 +794,7 @@
                     </div>
                     <div class="field-list">
                         <div class="field"><span class="field-label">Asal Sekolah</span><span class="field-sep">:</span><span class="field-val" id="val_asalSekolah">SMP N 1 Kajoran</span></div>
+                        <div class="field"><span class="field-label">Nilai Rata-rata Raport</span><span class="field-sep">:</span><span class="field-val" id="val_nilaiRataRata">-</span></div>
                     </div>
                 </div>
 
@@ -817,12 +817,73 @@
         };
 
         // Fungsi Memuat Data dari LocalStorage
+        // Data ada di 2 tempat yang bisa beda-beda:
+        // 1. "data_pendaftaran"  -> data yang siswa isi sendiri lewat formulir.html.
+        // 2. "list_pendaftar"    -> data admin (dipakai juga oleh edit_pendaftar_admin.html).
+        //    Ini sumber paling baru, karena admin bisa mengedit data siswa lewat halaman itu.
+        // Supaya update dari admin ikut muncul di sini, kita cari record siswa ini di
+        // "list_pendaftar" lalu timpakan ke atas data_pendaftaran.
+        function getMatchedAdminRecord(dataFormulir) {
+            try {
+                // FIX: formulir.html menyimpan nomor pendaftaran dengan nama field "noReg",
+                // bukan "noPendaftaran"/"nomorPendaftaran" — sebelumnya perbandingan ini SELALU
+                // gagal karena field yang dicek salah, jadi pencocokan cuma pernah lewat nama.
+                const noPendaftaran = dataFormulir.noReg || dataFormulir.noPendaftaran || dataFormulir.nomorPendaftaran;
+                const nama = dataFormulir.namaLengkap || dataFormulir.nama;
+
+                const listPendaftar = JSON.parse(localStorage.getItem('list_pendaftar') || '[]');
+                if (!Array.isArray(listPendaftar) || listPendaftar.length === 0) return null;
+
+                // Cocokkan dulu berdasarkan No. Pendaftaran (paling akurat)
+                let match = listPendaftar.find(item => (item.noReg || item.noPendaftaran) === noPendaftaran);
+
+                // Kalau tidak ketemu, cocokkan berdasarkan nama (case-insensitive)
+                if (!match && nama) {
+                    match = listPendaftar.find(item => item.nama && item.nama.toLowerCase() === nama.toLowerCase());
+                }
+
+                return match || null;
+            } catch (e) {
+                return null;
+            }
+        }
+
         function loadBiodataSiswa() {
             const dataPendaftaran = localStorage.getItem('data_pendaftaran');
             if (!dataPendaftaran) return; // Jika belum ada data, gunakan data default HTML
 
             try {
-                const data = JSON.parse(dataPendaftaran);
+                let data = JSON.parse(dataPendaftaran);
+
+                // Gabungkan dengan data dari admin (list_pendaftar) kalau ada.
+                // Sekarang edit_data_siswa.html dan edit_pendaftar_admin.html saling
+                // menyinkronkan diri, tapi sebagai jaga-jaga kita tetap bandingkan
+                // "lastUpdatedTs" supaya versi yang PALING BARU yang menang —
+                // bukan selalu data admin, dan bukan pula selalu data siswa.
+                const matchAdmin = getMatchedAdminRecord(data);
+                if (matchAdmin) {
+                    const siswaTs = data.lastUpdatedTs || 0;
+                    const adminTs = matchAdmin.lastUpdatedTs || 0;
+                    if (siswaTs >= adminTs) {
+                        // Data siswa sama baru atau lebih baru: data siswa menang untuk
+                        // field yang tumpang tindih, field khusus admin (mis. status) tetap ikut.
+                        data = { ...matchAdmin, ...data };
+                    } else {
+                        // Data dari admin lebih baru: data admin yang menang.
+                        data = { ...data, ...matchAdmin };
+                    }
+
+                    // FIX: status pendaftaran yang ditampilkan ke siswa harus SELALU mengikuti
+                    // hasil verifikasi berkas terbaru dari admin (verifikasi_berkas.html menulis
+                    // field "statusVerifikasi" ke list_pendaftar), bukan field "status" statis
+                    // yang cuma diisi sekali waktu formulir pertama kali disubmit dan tidak
+                    // pernah diperbarui lagi. Ini berlaku terlepas dari perbandingan timestamp
+                    // di atas, karena verifikasi berkas murni tindakan admin.
+                    if (matchAdmin.statusVerifikasi) {
+                        data.status = matchAdmin.statusVerifikasi;
+                    }
+                }
+
 
                 // Helper untuk mengisi teks jika ada nilainya
                 const setText = (id, val) => {
@@ -846,14 +907,20 @@
                 setText('val_nama', data.namaLengkap || data.nama);
                 setText('val_nisn', data.nisn);
                 setText('val_sekolah', data.asalSekolah || data.sekolah);
-                setText('val_tempatLahir', data.tempatLahir);
-                setText('val_tglLahir', data.tglLahir || data.tanggalLahir);
+                const tempatLahirVal = data.tempatLahir;
+                const tglLahirVal = data.tglLahir || data.tanggalLahir;
+                setText('val_ttl', (tempatLahirVal && tglLahirVal) ? `${tempatLahirVal}, ${tglLahirVal}` : (tempatLahirVal || tglLahirVal));
                 setText('val_jk', data.jk || data.jenisKelamin);
                 setText('val_hp', data.hp || data.nomorHp || data.telepon);
                 setText('val_saudara', data.saudara || data.jumlahSaudara);
                 setText('val_agama', data.agama);
                 setText('val_kebutuhanKhusus', data.kebutuhanKhusus);
-                setText('val_kpsKip', data.kpsKip || data.kip);
+                if (data.penerimaKps) {
+                    const jenisKartuText = Array.isArray(data.jenisKartu) && data.jenisKartu.length > 0
+                        ? ` (${data.jenisKartu.join(', ')})`
+                        : '';
+                    setText('val_kpsKip', (data.penerimaKps === 'ya' ? 'Ya' : 'Tidak') + jenisKartuText);
+                }
 
                 // Format Ukuran Fisik jika tinggi dan berat tersedia tersendiri
                 if (data.tinggiBadan && data.beratBadan) {
@@ -864,32 +931,32 @@
 
                 // Section B: Orang Tua / Wali
                 setText('val_namaAyah', data.namaAyah);
-                setText('val_pendidikanAyah', data.pendidikanAyah);
+                setText('val_pendidikanAyah', data.pendidikanAyahText || data.pendidikanAyah);
                 setText('val_pekerjaanAyah', data.pekerjaanAyah);
                 setText('val_tahunAyah', data.tahunAyah);
-                setText('val_penghasilanAyah', data.penghasilanAyah);
+                setText('val_penghasilanAyah', data.penghasilanAyahText || data.penghasilanAyah);
                 setText('val_hpAyah', data.hpAyah);
                 setText('val_khususAyah', data.khususAyah);
 
                 setText('val_namaIbu', data.namaIbu);
-                setText('val_pendidikanIbu', data.pendidikanIbu);
+                setText('val_pendidikanIbu', data.pendidikanIbuText || data.pendidikanIbu);
                 setText('val_pekerjaanIbu', data.pekerjaanIbu);
                 setText('val_tahunIbu', data.tahunIbu);
-                setText('val_penghasilanIbu', data.penghasilanIbu);
+                setText('val_penghasilanIbu', data.penghasilanIbuText || data.penghasilanIbu);
                 setText('val_hpIbu', data.hpIbu);
                 setText('val_khususIbu', data.khususIbu);
 
                 setText('val_namaWali', data.namaWali || "-");
-                setText('val_pendidikanWali', data.pendidikanWali || "-");
+                setText('val_pendidikanWali', data.pendidikanWaliText || data.pendidikanWali || "-");
                 setText('val_pekerjaanWali', data.pekerjaanWali || "-");
-                setText('val_penghasilanWali', data.penghasilanWali || "-");
+                setText('val_penghasilanWali', data.penghasilanWaliText || data.penghasilanWali || "-");
                 setText('val_hpWali', data.hpWali || "-");
 
                 // Section C: Tempat Tinggal
-                setText('val_provinsi', data.provinsi);
-                setText('val_kabupaten', data.kabupaten);
-                setText('val_kecamatan', data.kecamatan);
-                setText('val_kelurahan', data.kelurahan || data.desa);
+                setText('val_provinsi', data.provinsiText || data.provinsi);
+                setText('val_kabupaten', data.kabupatenText || data.kabupaten);
+                setText('val_kecamatan', data.kecamatanText || data.kecamatan);
+                setText('val_kelurahan', data.kelurahanText || data.kelurahan || data.desa);
                 setText('val_kodePos', data.kodePos);
                 setText('val_alamatLengkap', data.alamatLengkap || data.alamat);
                 setText('val_rtRw', data.rtRw || (data.rt && data.rw ? `RT ${data.rt} / RW ${data.rw}` : null));
@@ -915,6 +982,7 @@
 
                 // Section E: Asal Sekolah
                 setText('val_asalSekolah', data.asalSekolah || data.sekolah);
+                setText('val_nilaiRataRata', data.nilaiRataRata || data.nilaiAkhir);
 
             } catch (err) {
                 console.error("Gagal membaca data dari localStorage:", err);

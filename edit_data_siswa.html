@@ -740,13 +740,23 @@
           <div class="field"><label>Asal Sekolah<span class="req">*</span></label><input type="text" id="input_asalSekolah" class="req"></div>
         </div>
 
+        <div class="row-1">
+          <div class="field"><label>Nilai Rata-rata Raport<span class="req">*</span></label><input type="number" id="input_nilaiRataRata" class="req" step="0.01" min="0" max="100" placeholder="cth. 85.50"></div>
+        </div>
+
         <div class="row-2">
           <div class="field"><label>NISN<span class="req">*</span></label><input type="number" id="input_nisn" class="req"></div>
           <div class="field"><label>Nomor Hp Siswa (aktif)<span class="req">*</span></label><input type="number" id="input_hp" class="req"></div>
         </div>
 
         <div class="row-2">
-          <div class="field"><label>Tempat Lahir<span class="req">*</span></label><input type="text" id="input_tempatLahir" class="req"></div>
+          <div class="field">
+            <label>Tempat, Tanggal Lahir<span class="req">*</span></label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <input type="text" id="input_tempatLahir" class="req" placeholder="Tempat Lahir">
+              <input type="date" id="input_tglLahir" class="req">
+            </div>
+          </div>
           <div class="field">
             <label>Ukuran Fisik (Tinggi & Berat)<span class="req">*</span></label>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -756,8 +766,7 @@
           </div>
         </div>
 
-        <div class="row-2">
-          <div class="field"><label>Tanggal Lahir<span class="req">*</span></label><input type="date" id="input_tglLahir" class="req"></div>
+        <div class="row-1">
           <div class="field"><label>Jumlah Saudara<span class="req">*</span></label><input type="number" id="input_jumlahSaudara" class="req"></div>
         </div>
 
@@ -1168,7 +1177,7 @@ document.addEventListener("click", (e) => {
 
 function toggleKphCard(isSelectIya) {
   const cardSelectionBox = document.getElementById('kph-card-selection');
-  const checkboxes = document.querySelectorAll('input[name="jenis_kartu"]');
+  const checkboxes = document.querySelectorAll('input[name="jenis_bantuan"]');
   
   if (isSelectIya) {
     cardSelectionBox.style.display = 'block';
@@ -1352,6 +1361,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Data Diri Siswa
     if (data.asalSekolah) document.getElementById('input_asalSekolah').value = data.asalSekolah;
+    if (data.nilaiRataRata) document.getElementById('input_nilaiRataRata').value = data.nilaiRataRata;
     if (data.hp) document.getElementById('input_hp').value = data.hp;
     if (data.tempatLahir) document.getElementById('input_tempatLahir').value = data.tempatLahir;
     if (data.tglLahir) document.getElementById('input_tglLahir').value = data.tglLahir;
@@ -1374,13 +1384,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Penerima KPS / KKS / KIP
     if (data.penerimaKps) {
-      const radioKps = document.querySelector(`input[name="penerima_kps"][value="${data.penerimaKps}"]`);
+      const radioKps = document.querySelector(`input[name="is_penerima_bantuan"][value="${data.penerimaKps}"]`);
       if (radioKps) radioKps.checked = true;
       if (data.penerimaKps === 'ya') {
         toggleKphCard(true);
         if (data.jenisKartu && Array.isArray(data.jenisKartu)) {
           data.jenisKartu.forEach(val => {
-            const cb = document.querySelector(`input[name="jenis_kartu"][value="${val}"]`);
+            const cb = document.querySelector(`input[name="jenis_bantuan"][value="${val}"]`);
             if (cb) cb.checked = true;
           });
         }
@@ -1397,7 +1407,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (data.penghasilanAyah) document.getElementById('select_penghasilanAyah').value = data.penghasilanAyah;
     if (data.hpAyah) document.getElementById('input_hpAyah').value = data.hpAyah;
     if (data.khususAyah) {
-      const radioKhususAyah = document.querySelector(`input[name="kebutuhan_khusus_ayah"][value="${data.khususAyah}"]`);
+      const radioKhususAyah = document.querySelector(`input[name="ayah_kebutuhan_khusus"][value="${data.khususAyah}"]`);
       if (radioKhususAyah) radioKhususAyah.checked = true;
     }
 
@@ -1409,7 +1419,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (data.penghasilanIbu) document.getElementById('select_penghasilanIbu').value = data.penghasilanIbu;
     if (data.hpIbu) document.getElementById('input_hpIbu').value = data.hpIbu;
     if (data.khususIbu) {
-      const radioKhususIbu = document.querySelector(`input[name="kebutuhan_khusus_ibu"][value="${data.khususIbu}"]`);
+      const radioKhususIbu = document.querySelector(`input[name="ibu_kebutuhan_khusus"][value="${data.khususIbu}"]`);
       if (radioKhususIbu) radioKhususIbu.checked = true;
     }
 
@@ -1510,17 +1520,17 @@ document.getElementById("btnSimpan").addEventListener("click", () => {
   // Baca Radio & Checkbox Terpilih
   const selectedJK = document.querySelector('input[name="jenis_kelamin"]:checked')?.value || 'L';
   const selectedKhususSiswa = document.querySelector('input[name="kebutuhan_khusus"]:checked')?.value || 'tidak';
-  const selectedPenerimaKps = document.querySelector('input[name="penerima_kps"]:checked')?.value || 'tidak';
+  const selectedPenerimaKps = document.querySelector('input[name="is_penerima_bantuan"]:checked')?.value || 'tidak';
 
   const jenisKartuArr = [];
   if (selectedPenerimaKps === 'ya') {
-    document.querySelectorAll('input[name="jenis_kartu"]:checked').forEach(cb => {
+    document.querySelectorAll('input[name="jenis_bantuan"]:checked').forEach(cb => {
       jenisKartuArr.push(cb.value);
     });
   }
 
-  const selectedKhususAyah = document.querySelector('input[name="kebutuhan_khusus_ayah"]:checked')?.value || 'tidak';
-  const selectedKhususIbu = document.querySelector('input[name="kebutuhan_khusus_ibu"]:checked')?.value || 'tidak';
+  const selectedKhususAyah = document.querySelector('input[name="ayah_kebutuhan_khusus"]:checked')?.value || 'tidak';
+  const selectedKhususIbu = document.querySelector('input[name="ibu_kebutuhan_khusus"]:checked')?.value || 'tidak';
   const selectedJ1 = document.querySelector('input[name="jurusan_1"]:checked')?.value || 'PPLG';
   const selectedJ2 = document.querySelector('input[name="jurusan_2"]:checked')?.value || 'BCF';
 
@@ -1540,9 +1550,11 @@ document.getElementById("btnSimpan").addEventListener("click", () => {
   const updatedData = {
     ...existingData,
     lastUpdated: updatedTimestamp,
+    lastUpdatedTs: now.getTime(),
     nama: document.getElementById('input_nama').value.trim(),
     nisn: document.getElementById('input_nisn').value.trim(),
     asalSekolah: document.getElementById('input_asalSekolah').value.trim(),
+    nilaiRataRata: document.getElementById('input_nilaiRataRata').value.trim(),
     hp: document.getElementById('input_hp').value.trim(),
     tempatLahir: document.getElementById('input_tempatLahir').value.trim(),
     tglLahir: document.getElementById('input_tglLahir').value,
@@ -1613,12 +1625,127 @@ document.getElementById("btnSimpan").addEventListener("click", () => {
   // Simpan kembali ke localStorage
   localStorage.setItem('data_pendaftaran', JSON.stringify(updatedData));
 
+  // Sinkronkan juga ke data admin (list_pendaftar), supaya perubahan yang
+  // dibuat siswa lewat halaman ini langsung ikut muncul di halaman
+  // detail_pendaftar_admin.html dan edit_pendaftar_admin.html milik admin.
+  syncSiswaEditToAdminList(updatedData);
+
   showToast("Perubahan berhasil disimpan.");
 
   setTimeout(() => {
     window.location.href = "biodata_siswa.html";
   }, 1200);
 });
+
+// ==========================================
+// SINKRONISASI: Edit Siswa -> Data Admin (list_pendaftar)
+// Skema field siswa (data_pendaftaran) berbeda penamaan dengan skema
+// admin (list_pendaftar), jadi field-nya dipetakan satu per satu di sini.
+// ==========================================
+function syncSiswaEditToAdminList(data) {
+  try {
+    const rawList = localStorage.getItem('list_pendaftar');
+    let listPendaftar = rawList ? JSON.parse(rawList) : [];
+    if (!Array.isArray(listPendaftar)) listPendaftar = [];
+
+    // FIX: formulir.html menyimpan nomor pendaftaran dengan nama field "noReg",
+    // bukan "noPendaftaran"/"nomorPendaftaran" — sebelumnya perbandingan ini SELALU
+    // gagal karena field yang dicek salah, jadi pencocokan cuma pernah lewat nama.
+    const noPendaftaran = data.noReg || data.noPendaftaran || data.nomorPendaftaran;
+    const nama = data.namaLengkap || data.nama;
+
+    // Cocokkan record admin milik siswa ini: berdasarkan No. Pendaftaran dulu,
+    // kalau tidak ada baru berdasarkan nama (case-insensitive).
+    let idx = listPendaftar.findIndex(item => (item.noReg || item.noPendaftaran) && (item.noReg || item.noPendaftaran) === noPendaftaran);
+    if (idx === -1 && nama) {
+      idx = listPendaftar.findIndex(item => item.nama && item.nama.toLowerCase() === nama.toLowerCase());
+    }
+    // Kalau siswa ini belum ada di daftar admin, tidak ada yang perlu disinkronkan.
+    if (idx === -1) return;
+
+    const existingAdmin = listPendaftar[idx];
+
+    listPendaftar[idx] = {
+      ...existingAdmin,
+      nama: data.nama || data.namaLengkap || existingAdmin.nama,
+      nisn: data.nisn ?? existingAdmin.nisn,
+      sekolah: data.asalSekolah ?? existingAdmin.sekolah,
+      asalSekolah: data.asalSekolah ?? existingAdmin.asalSekolah,
+      nilaiRataRata: data.nilaiRataRata ?? existingAdmin.nilaiRataRata,
+      nilaiAkhir: data.nilaiRataRata ?? existingAdmin.nilaiAkhir,
+      hp: data.hp ?? existingAdmin.hp,
+      tempatLahir: data.tempatLahir ?? existingAdmin.tempatLahir,
+      tglLahir: data.tglLahir ?? existingAdmin.tglLahir,
+      fisik: (data.tinggi && data.berat) ? `${data.tinggi} cm / ${data.berat} kg` : existingAdmin.fisik,
+      tinggi: data.tinggi ?? existingAdmin.tinggi,
+      berat: data.berat ?? existingAdmin.berat,
+      saudara: data.jumlahSaudara ?? existingAdmin.saudara,
+      agama: data.agama ?? existingAdmin.agama,
+      jk: data.jenisKelamin ?? existingAdmin.jk,
+      kebutuhanKhusus: data.kebutuhanKhusus === 'ya' ? 'Ya' : (data.kebutuhanKhusus === 'tidak' ? 'Tidak' : existingAdmin.kebutuhanKhusus),
+      penerimaKps: data.penerimaKps ?? existingAdmin.penerimaKps,
+      jenisKartu: data.jenisKartu ?? existingAdmin.jenisKartu,
+      kpsKip: data.penerimaKps === 'ya' ? 'Ya' : (data.penerimaKps === 'tidak' ? 'Tidak' : existingAdmin.kpsKip),
+
+      namaAyah: data.namaAyah ?? existingAdmin.namaAyah,
+      pendidikanAyah: data.pendidikanAyah ?? existingAdmin.pendidikanAyah,
+      pendidikanAyahText: data.pendidikanAyahText ?? existingAdmin.pendidikanAyahText,
+      pekerjaanAyah: data.pekerjaanAyah ?? existingAdmin.pekerjaanAyah,
+      tahunAyah: data.tahunAyah ?? existingAdmin.tahunAyah,
+      penghasilanAyah: data.penghasilanAyah ?? existingAdmin.penghasilanAyah,
+      penghasilanAyahText: data.penghasilanAyahText ?? existingAdmin.penghasilanAyahText,
+      hpAyah: data.hpAyah ?? existingAdmin.hpAyah,
+      khususAyah: data.khususAyah === 'ya' ? 'Ya' : (data.khususAyah === 'tidak' ? 'Tidak' : existingAdmin.khususAyah),
+
+      namaIbu: data.namaIbu ?? existingAdmin.namaIbu,
+      pendidikanIbu: data.pendidikanIbu ?? existingAdmin.pendidikanIbu,
+      pendidikanIbuText: data.pendidikanIbuText ?? existingAdmin.pendidikanIbuText,
+      pekerjaanIbu: data.pekerjaanIbu ?? existingAdmin.pekerjaanIbu,
+      tahunIbu: data.tahunIbu ?? existingAdmin.tahunIbu,
+      penghasilanIbu: data.penghasilanIbu ?? existingAdmin.penghasilanIbu,
+      penghasilanIbuText: data.penghasilanIbuText ?? existingAdmin.penghasilanIbuText,
+      hpIbu: data.hpIbu ?? existingAdmin.hpIbu,
+      khususIbu: data.khususIbu === 'ya' ? 'Ya' : (data.khususIbu === 'tidak' ? 'Tidak' : existingAdmin.khususIbu),
+
+      namaWali: data.namaWali ?? existingAdmin.namaWali,
+      pendidikanWali: data.pendidikanWali ?? existingAdmin.pendidikanWali,
+      pendidikanWaliText: data.pendidikanWaliText ?? existingAdmin.pendidikanWaliText,
+      pekerjaanWali: data.pekerjaanWali ?? existingAdmin.pekerjaanWali,
+      penghasilanWali: data.penghasilanWali ?? existingAdmin.penghasilanWali,
+      penghasilanWaliText: data.penghasilanWaliText ?? existingAdmin.penghasilanWaliText,
+      hpWali: data.hpWali ?? existingAdmin.hpWali,
+
+      provinsi: data.provinsi ?? existingAdmin.provinsi,
+      provinsiText: data.provinsiText ?? existingAdmin.provinsiText,
+      kabupaten: data.kabupaten ?? existingAdmin.kabupaten,
+      kabupatenText: data.kabupatenText ?? existingAdmin.kabupatenText,
+      kecamatan: data.kecamatan ?? existingAdmin.kecamatan,
+      kecamatanText: data.kecamatanText ?? existingAdmin.kecamatanText,
+      kelurahan: data.kelurahan ?? existingAdmin.kelurahan,
+      kelurahanText: data.kelurahanText ?? existingAdmin.kelurahanText,
+      kodePos: data.kodePos ?? existingAdmin.kodePos,
+      alamatLengkap: data.alamatLengkap ?? existingAdmin.alamatLengkap,
+      rt: data.rt ?? existingAdmin.rt,
+      rw: data.rw ?? existingAdmin.rw,
+      rtRw: (data.rt || data.rw) ? `RT ${data.rt || '-'} / RW ${data.rw || '-'}` : existingAdmin.rtRw,
+      jenisTinggal: data.jenisTinggal ?? existingAdmin.jenisTinggal,
+      transportasi: data.transportasi ?? existingAdmin.transportasi,
+      jarakSekolah: data.jarakSekolah ?? existingAdmin.jarakSekolah,
+
+      jurusan1: data.jurusan1 ?? existingAdmin.jurusan1,
+      jurusan2: data.jurusan2 ?? existingAdmin.jurusan2,
+      gelombang: data.gelombang ?? existingAdmin.gelombang,
+      metodePembayaran: data.metodePembayaran ?? existingAdmin.metodePembayaran,
+
+      lastUpdated: data.lastUpdated,
+      lastUpdatedTs: data.lastUpdatedTs
+    };
+
+    localStorage.setItem('list_pendaftar', JSON.stringify(listPendaftar));
+  } catch (e) {
+    console.error('Gagal sinkronisasi perubahan siswa ke data admin:', e);
+  }
+}
 
 function hubungiAdminWA() {
   const elemNama = document.getElementById('namaSiswaDisplay');

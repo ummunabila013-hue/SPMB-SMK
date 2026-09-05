@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Admin - PPDB SMK Maarif Walisongo</title>
+    <title>Dashboard Admin - SPMB SMK Maarif Walisongo</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
           onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css';">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -633,8 +633,8 @@
             <div class="sidebar-header">
                 <img src="img/logo.smk.png" alt="Logo SMK" class="logo-sekolah-img" onerror="this.src='https://via.placeholder.com/45';">
                 <div class="school-title">
-                    <h1>SMK Maarif</h1>
-                    <h2>Walisongo Kajoran</h2>
+                    <h1>SMK Ma'arif Walisongo Kajoran</h1>
+                    <h2>SPMB 2027/2028</h2>
                     <span class="admin-tag">Admin Panel</span>
                 </div>
             </div>
@@ -912,13 +912,18 @@
 
             listData.forEach(item => {
                 // Hitung Verifikasi
-                const status = (item.statusVerifikasi || '').toLowerCase();
-                if (status.includes('verifikasi') || status.includes('diverifikasi')) {
+                // FIX: sebelumnya cuma cek item.statusVerifikasi. Tapi halaman Seleksi &
+                // Kelulusan (seleksi_kelulusan.html) menyimpan status kelulusan siswa ke
+                // field item.status (bukan statusVerifikasi), jadi siswa yang sudah
+                // "Diterima"/"Lulus" tidak pernah kehitung di kartu ini. Sekarang kedua
+                // field dicek.
+                const status = String(item.statusVerifikasi || item.status || '').toLowerCase();
+                if (status.includes('diterima') || status.includes('lulus')) {
+                    countDiterima++;
+                } else if (status.includes('verifikasi') || status.includes('diverifikasi')) {
                     countVerif++;
                 } else if (status.includes('proses')) {
                     countProses++;
-                } else if (status.includes('diterima') || status.includes('lulus')) {
-                    countDiterima++;
                 } else {
                     countProses++;
                 }
@@ -943,12 +948,17 @@
                 tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #888;">Belum ada pendaftar terbaru.</td></tr>`;
             } else {
                 listData.forEach((item, index) => {
-                    const statusText = item.statusVerifikasi || "Berkas Diverifikasi";
+                    // FIX: sama seperti perhitungan kartu statistik di atas — status
+                    // "Diterima" tersimpan di item.status, bukan item.statusVerifikasi.
+                    const statusText = item.statusVerifikasi || item.status || "Berkas Diverifikasi";
                     const statusLower = statusText.toLowerCase();
                     let badgeClass = "badge-verif";
                     let iconClass = "fa-file-circle-check";
 
-                    if (statusLower.includes("pending") || statusLower.includes("belum lengkap")) {
+                    if (statusLower.includes("diterima") || statusLower.includes("lulus")) {
+                        badgeClass = "badge-diterima";
+                        iconClass = "fa-user-check";
+                    } else if (statusLower.includes("pending") || statusLower.includes("belum lengkap")) {
                         badgeClass = "badge-pending";
                         iconClass = "fa-clock";
                     } else if (statusLower.includes("revisi")) {
@@ -957,9 +967,6 @@
                     } else if (statusLower.includes("proses")) {
                         badgeClass = "badge-proses";
                         iconClass = "fa-spinner";
-                    } else if (statusLower.includes("diterima")) {
-                        badgeClass = "badge-diterima";
-                        iconClass = "fa-user-check";
                     }
 
                     const row = document.createElement("tr");

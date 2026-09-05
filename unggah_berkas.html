@@ -618,6 +618,44 @@
                 if (mobileProfileBtn) mobileProfileBtn.style.display = 'none';
             }
         });
+        // ---------- HELPER: STORAGE BERKAS PER-SISWA (id) ----------
+        // FIX SINKRONISASI: sebelumnya berkas cuma disimpan di 1 key global
+        // "berkas_pendaftar_current", sehingga saat ada lebih dari satu pendaftar,
+        // berkas_pendaftaran.html & verifikasi_berkas.html bisa salah tampilkan
+        // berkas milik siswa lain (soalnya kedua halaman itu sudah baca per-id
+        // "berkas_pendaftar_<id>"). Sekarang disimpan per-id juga di sini, key
+        // lama tetap ditulis untuk kompatibilitas.
+        function getCurrentStudentId() {
+            try {
+                const raw = localStorage.getItem('dataSiswaSPMB');
+                if (raw) {
+                    const d = JSON.parse(raw);
+                    if (d && d.id) return String(d.id);
+                }
+            } catch (e) {}
+            try {
+                const rawDaftar = localStorage.getItem('data_pendaftaran');
+                if (rawDaftar) {
+                    const d2 = JSON.parse(rawDaftar);
+                    if (d2 && d2.id) return String(d2.id);
+                }
+            } catch (e) {}
+            return '1';
+        }
+
+        function loadCurrentBerkasTersimpan() {
+            try {
+                const perId = localStorage.getItem('berkas_pendaftar_' + getCurrentStudentId());
+                if (perId && perId !== 'undefined') return JSON.parse(perId);
+            } catch (e) {}
+            try {
+                const legacy = localStorage.getItem('berkas_pendaftar_current');
+                return (legacy && legacy !== 'undefined') ? JSON.parse(legacy) : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
         // SIMPAN BERKAS KE LOCALSTORAGE & SYNC KE BERKAS PENDAFTAR CURRENT
         function simpanBerkasLokal(input, keyLokal) {
             const displayDiv = document.getElementById('name-' + keyLokal);
@@ -642,7 +680,8 @@
                     localStorage.setItem('file_' + keyLokal, JSON.stringify(infoBerkas));
 
                     // 2. Simpan & Sync ke objek terpusat untuk Verifikasi Berkas
-                    let currentBerkas = JSON.parse(localStorage.getItem("berkas_pendaftar_current") || "{}");
+                    //    (dibaca per-id supaya tidak ketuker dengan berkas siswa lain)
+                    let currentBerkas = loadCurrentBerkasTersimpan();
                     
                     let targetKey = keyLokal;
                     if (keyLokal === 'kps') {
@@ -652,7 +691,8 @@
                     }
 
                     currentBerkas[targetKey] = infoBerkas;
-                    localStorage.setItem("berkas_pendaftar_current", JSON.stringify(currentBerkas));
+                    localStorage.setItem("berkas_pendaftar_" + getCurrentStudentId(), JSON.stringify(currentBerkas));
+                    localStorage.setItem("berkas_pendaftar_current", JSON.stringify(currentBerkas)); // kompatibilitas lama
                 };
                 reader.readAsDataURL(file);
             }
@@ -666,7 +706,7 @@
         document.addEventListener("DOMContentLoaded", function () {
             // TAMPILKAN FILE YANG SUDAH PERNAH DIUNGGAH SEBELUMNYA
             const keys = ['kk', 'akta', 'ktp-ayah', 'ktp-ibu', 'kps', 'pembayaran', 'foto', 'skl'];
-            const currentBerkas = JSON.parse(localStorage.getItem("berkas_pendaftar_current") || "{}");
+            const currentBerkas = loadCurrentBerkasTersimpan();
 
             keys.forEach(k => {
                 let targetKey = k;
@@ -698,7 +738,7 @@
             const metodeBayar = localStorage.getItem('metode_pembayaran') || "";
             const kartuPembayaran = document.getElementById('kartu-upload-pembayaran');
             
-            if (kartuPembayaran && (String(gelombangPilihan).includes('2') || metodeBayar === 'transfer')) {
+            if (kartuPembayaran && String(gelombangPilihan).includes('2') && metodeBayar === 'transfer') {
                 kartuPembayaran.style.display = 'flex';
             }
         });

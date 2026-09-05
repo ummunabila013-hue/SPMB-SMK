@@ -1045,6 +1045,31 @@
   let dataVerifikasi = [];
   let currentActiveId = null;
 
+  // ---------- HELPER: STORAGE BERKAS PER-SISWA (id) ----------
+  // Sebelumnya seluruh berkas siswa dibaca/tulis dari 1 key global
+  // "berkas_pendaftar_current", sehingga saat admin membuka data siswa
+  // berbeda, yang tampil malah data siswa lain (tertukar). Sekarang
+  // dibaca/tulis per-id "berkas_pendaftar_<id>", key lama tetap ditulis
+  // juga sebagai fallback/kompatibilitas.
+  function loadBerkasForId(id) {
+    try {
+      const perId = localStorage.getItem('berkas_pendaftar_' + id);
+      if (perId && perId !== 'undefined') return JSON.parse(perId);
+    } catch (e) {}
+    try {
+      const legacy = localStorage.getItem('berkas_pendaftar_current');
+      return (legacy && legacy !== 'undefined') ? JSON.parse(legacy) : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveBerkasForId(id, dataObj) {
+    const json = JSON.stringify(dataObj);
+    localStorage.setItem('berkas_pendaftar_' + id, json);
+    localStorage.setItem('berkas_pendaftar_current', json); // kompatibilitas lama
+  }
+
   const sidebar = document.getElementById("sidebar");
   const mainContent = document.getElementById("mainContent");
 
@@ -1109,7 +1134,6 @@
   function loadPendaftarData() {
     const localPendaftar = localStorage.getItem("list_pendaftar");
     const localDataSiswa = localStorage.getItem("dataSiswaSPMB") || localStorage.getItem("data_pendaftaran");
-    const currentBerkas = JSON.parse(localStorage.getItem("berkas_pendaftar_current") || "{}");
     
     let rawList = [];
 
@@ -1131,6 +1155,7 @@
     }
 
     if (rawList.length === 0) {
+      const currentBerkas = loadBerkasForId("1");
       const statusGlobal = currentBerkas._statusGlobal || "process";
       dataVerifikasi = [
         { 
@@ -1139,27 +1164,33 @@
           nama: singleData.nama || "Calon Siswa 1", 
           sekolah: singleData.sekolahAsal || singleData.asalSekolah || "SMP N 1 Kajoran", 
           nisn: singleData.nisn || "0081234567",
+          gelombang: singleData.gelombang || "Gelombang 1",
+          metodePembayaran: singleData.metodePembayaran || "",
           statusBerkas: statusGlobal,
           catatanRevisi: currentBerkas._catatanRevisi || ""
         }
       ];
     } else {
       dataVerifikasi = rawList.map((item, index) => {
+        const idSiswa = String(item.id || (index + 1));
+        const currentBerkas = loadBerkasForId(idSiswa);
         const fixNisn = item.nisn || item.nomorNISN || item.nisnSiswa || singleData.nisn || "0081234567";
         const fixNama = item.nama || item.namaLengkap || item.namaSiswa || singleData.nama || ("Calon Siswa " + (index + 1));
         const fixSekolah = item.sekolahAsal || item.asalSekolah || item.sekolah || singleData.sekolahAsal || "-";
 
         let currentStatus = item.statusBerkas || item.status_verifikasi;
-        if (index === 0 && currentBerkas._statusGlobal) {
+        if (currentBerkas._statusGlobal) {
           currentStatus = currentBerkas._statusGlobal;
         }
 
         return {
-          id: String(item.id || (index + 1)),
+          id: idSiswa,
           noReg: item.noReg || item.noPendaftaran || ("SPMB-2027-000" + (index + 1)),
           nama: fixNama,
           sekolah: fixSekolah,
           nisn: fixNisn,
+          gelombang: item.gelombang || "Gelombang 1",
+          metodePembayaran: item.metodePembayaran || currentBerkas.metodePembayaran || "",
           statusBerkas: currentStatus || "process",
           catatanRevisi: currentBerkas._catatanRevisi || item.catatanRevisi || ""
         };
@@ -1243,8 +1274,11 @@
 
     const revisionArea = document.getElementById('revisionArea');
     const modalFooter = document.getElementById('modalFooter');
-    const currentBerkas = JSON.parse(localStorage.getItem("berkas_pendaftar_current") || "{}");
+    const currentBerkas = loadBerkasForId(id);
     const statusDokumenMap = currentBerkas.statusDokumen || {};
+
+    const isGel2 = String(siswa.gelombang || "").includes("2");
+    const metodeBayar = String(siswa.metodePembayaran || currentBerkas.metodePembayaran || "transfer").toLowerCase();
     
     const docGrid = document.getElementById("docGridContainer");
     docGrid.innerHTML = "";
@@ -1261,6 +1295,40 @@
     ];
 
     masterDocs.forEach(doc => {
+      // Dokumen pembayaran hanya relevan untuk siswa Gelombang 2
+      if (doc.key === 'bayar' && !isGel2) return;
+
+      // ---- KARTU KHUSUS: Administrasi Gelombang 2 dibayar TUNAI/CASH ----
+      // Tidak ada file untuk diperiksa, admin cukup menandai Lunas / Belum Lunas.
+      // Catatan: formulir.html menyimpan nilai "langsung" untuk opsi tunai (bukan "cash"),
+      // jadi keduanya dianggap sama di sini.
+      if (doc.key === 'bayar' && (metodeBayar === 'cash' || metodeBayar === 'langsung')) {
+        const statusBayar = statusDokumenMap['bayar'] || 'belum';
+        const tglBayar = (currentBerkas.statusDokumenTanggal && currentBerkas.statusDokumenTanggal['bayar']) || null;
+        const card = document.createElement("div");
+        card.className = "doc-card";
+        card.innerHTML = `
+          <div class="doc-title">
+            <span>Administrasi Gel. 2 (Tunai/Cash)</span>
+          </div>
+          <div class="doc-preview" style="flex-direction: column; gap: 6px;">
+            <i class="fa-solid fa-money-bill-wave" style="font-size: 32px;"></i>
+            <span style="font-size: 11px; text-align: center; padding: 0 5px;">Bayar langsung di sekolah — tanpa bukti unggahan</span>
+            ${tglBayar ? `<span style="font-size: 10px; color: #6b7280;">Terakhir diubah: ${tglBayar}</span>` : ''}
+          </div>
+          ${isEdit ? `
+          <select class="doc-status-select" data-key="bayar">
+            <option value="lunas" ${statusBayar === 'lunas' ? 'selected' : ''}>✓ Lunas (Sudah Bayar)</option>
+            <option value="belum" ${statusBayar !== 'lunas' ? 'selected' : ''}>✕ Belum Lunas</option>
+          </select>` : `
+          <span class="doc-status-select" style="display:flex; align-items:center; justify-content:center; font-weight:700; color:${statusBayar === 'lunas' ? '#047857' : '#b91c1c'};">
+            ${statusBayar === 'lunas' ? '✓ Lunas' : '✕ Belum Lunas'}
+          </span>`}
+        `;
+        docGrid.appendChild(card);
+        return;
+      }
+
       let fileObj = currentBerkas[doc.key] || localStorage.getItem('file_' + doc.key);
       if (!fileObj && doc.key === 'ktp-ayah') {
         fileObj = currentBerkas['ktp'] || localStorage.getItem('file_ktp');
@@ -1285,16 +1353,24 @@
       }
 
       let previewContent = `<i class="fa-solid ${doc.icon}" style="font-size: 32px;"></i><span style="font-size: 11px; text-align: center; padding: 0 5px;">${fileName}</span>`;
-      
+
       if (fileData && typeof fileData === 'string' && fileData.startsWith('data:image')) {
         previewContent = `<img src="${fileData}" style="width: 100%; height: 100%; object-fit: cover;">`;
+      } else if (fileData && typeof fileData === 'string' && fileData.startsWith('data:application/pdf')) {
+        // FIX: sebelumnya file PDF (mis. SKL/Ijazah) cuma tampil ikon generik di kotak
+        // preview ini, padahal file-nya sendiri sudah tersimpan dengan benar (bisa dibuka
+        // lewat "Lihat Asli"). Sekarang kotak preview kasih badge PDF yang jelas biar admin
+        // gak ngira file-nya belum diunggah.
+        previewContent = `<i class="fa-solid fa-file-pdf" style="font-size: 32px; color: #dc2626;"></i><span style="font-size: 11px; text-align: center; padding: 0 5px;">${fileName}</span><span style="font-size: 9px; color: #dc2626; font-weight: 700;">FILE PDF</span>`;
       }
+
+      const cardTitle = (doc.key === 'bayar') ? `${doc.title} (Transfer Bank)` : doc.title;
 
       const card = document.createElement("div");
       card.className = "doc-card";
       card.innerHTML = `
         <div class="doc-title">
-          <span>${doc.title}</span>
+          <span>${cardTitle}</span>
           ${fileData ? `<a href="javascript:void(0)" onclick="viewFullDoc('${doc.title}', '${doc.key}')" style="font-size: 11px; color: var(--accent);">Lihat Asli</a>` : ''}
         </div>
         <div class="doc-preview">
@@ -1323,7 +1399,7 @@
   }
 
   function viewFullDoc(title, docKey) {
-    const currentBerkas = JSON.parse(localStorage.getItem("berkas_pendaftar_current") || "{}");
+    const currentBerkas = loadBerkasForId(currentActiveId);
     let fileObj = currentBerkas[docKey] || localStorage.getItem('file_' + docKey);
     let fileData = null;
 
@@ -1362,9 +1438,14 @@
 
     if (!siswa) return;
 
-    let currentBerkas = JSON.parse(localStorage.getItem("berkas_pendaftar_current") || "{}");
+    let currentBerkas = loadBerkasForId(currentActiveId);
     const selects = document.querySelectorAll('.doc-status-select');
-    
+
+    // FIX: "metodeBayar" sebelumnya cuma ada di scope fungsi render modal (openModal),
+    // jadi dipakai di sini (fungsi berbeda) bikin ReferenceError dan tombol "Terapkan Aksi"
+    // gagal total (bukan cuma untuk baris cash) begitu error dilempar. Dihitung ulang di sini.
+    const metodeBayar = String(siswa.metodePembayaran || currentBerkas.metodePembayaran || "transfer").toLowerCase();
+
     let hasRevisi = false;
     let hasPending = false;
     let hasMenunggu = false;
@@ -1379,12 +1460,40 @@
       const key = select.getAttribute('data-key');
       const valStatus = select.value;
 
+      // ---- RIWAYAT PERUBAHAN: khusus dokumen "bayar" untuk metode Cash/Langsung ----
+      // Sebelumnya status Lunas/Belum Lunas memang tersimpan, tapi tanggalnya selalu "-"
+      // (tidak pernah dicatat KAPAN admin mengubahnya). Sekarang setiap kali statusnya
+      // benar-benar berubah, kita catat tanggal/jam perubahan itu (statusDokumenTanggal)
+      // dan tambahkan ke log riwayat (riwayatAdministrasiGel2), supaya siswa bisa lihat
+      // sejak kapan administrasinya dinyatakan Lunas oleh admin.
+      if (key === 'bayar' && (metodeBayar === 'cash' || metodeBayar === 'langsung')) {
+        const statusSebelumnya = currentBerkas.statusDokumen ? currentBerkas.statusDokumen['bayar'] : undefined;
+        if (statusSebelumnya !== valStatus) {
+          const now = new Date();
+          const tglStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + " " + now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + " WIB";
+
+          if (!currentBerkas.statusDokumenTanggal) currentBerkas.statusDokumenTanggal = {};
+          currentBerkas.statusDokumenTanggal['bayar'] = tglStr;
+
+          if (!currentBerkas.riwayatAdministrasiGel2) currentBerkas.riwayatAdministrasiGel2 = [];
+          currentBerkas.riwayatAdministrasiGel2.push({ status: valStatus, tanggal: tglStr });
+        }
+      }
+
       currentBerkas.statusDokumen[key] = valStatus;
 
-      if (valStatus === 'revisi') hasRevisi = true;
-      if (valStatus === 'pending') hasPending = true;
-      if (valStatus === 'menunggu') hasMenunggu = true;
-      if (valStatus !== 'terverifikasi') allVerified = false;
+      // Dokumen "bayar" untuk metode Cash memakai nilai "lunas"/"belum" (bukan
+      // 4 status baku dokumen). Supaya perhitungan status global berkas tetap
+      // akurat, kita samakan makna nilainya: lunas = terverifikasi, belum = menunggu.
+      let effectiveStatus = valStatus;
+      if (key === 'bayar' && (valStatus === 'lunas' || valStatus === 'belum')) {
+        effectiveStatus = (valStatus === 'lunas') ? 'terverifikasi' : 'menunggu';
+      }
+
+      if (effectiveStatus === 'revisi') hasRevisi = true;
+      if (effectiveStatus === 'pending') hasPending = true;
+      if (effectiveStatus === 'menunggu') hasMenunggu = true;
+      if (effectiveStatus !== 'terverifikasi') allVerified = false;
 
       if (currentBerkas[key] && typeof currentBerkas[key] === 'object') {
         currentBerkas[key].status = valStatus;
@@ -1418,7 +1527,7 @@
     currentBerkas._catatanRevisi = catatan;
 
     localStorage.setItem("status_verifikasi_admin", newStatusGlobal === "verified" ? "disetujui" : newStatusGlobal);
-    localStorage.setItem("berkas_pendaftar_current", JSON.stringify(currentBerkas));
+    saveBerkasForId(currentActiveId, currentBerkas);
 
     // 4. Update data pendaftar global jika ada
     const localPendaftar = localStorage.getItem("list_pendaftar");

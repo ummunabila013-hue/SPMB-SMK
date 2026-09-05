@@ -336,6 +336,66 @@
         }
         .status-revision:hover { background: #fde68a; }
 
+        /* ---------- METODE PEMBAYARAN (Gelombang 2) ---------- */
+        .metode-bayar-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        .metode-bayar-opt {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            text-align: left;
+            background: #fff;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: .15s ease;
+            font-family: inherit;
+        }
+        .metode-bayar-opt:hover { border-color: #047857; background: #f8fdf9; }
+        .metode-bayar-opt.active {
+            border-color: #047857;
+            background: #f0faf4;
+            box-shadow: 0 0 0 3px rgba(4, 120, 87, .12);
+        }
+        .metode-bayar-opt i {
+            font-size: 22px;
+            color: #047857;
+            width: 34px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .metode-bayar-opt h5 { margin: 0 0 4px; font-size: 13.5px; font-weight: 700; color: #111827; }
+        .metode-bayar-opt p { margin: 0; font-size: 11.5px; color: #6b7280; line-height: 1.4; }
+        .metode-bayar-opt .check-mark { margin-left: auto; color: #047857; font-size: 16px; display: none; }
+        .metode-bayar-opt.active .check-mark { display: block; }
+
+        .admin-cash-status {
+            display: none;
+            align-items: center;
+            gap: 14px;
+            margin-top: 16px;
+            background: #f8fafc;
+            border: 1.5px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+        .admin-cash-status .row-icon-box {
+            width: 38px; height: 38px; border-radius: 10px;
+            background: #e6f4ea; color: #047857;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; flex-shrink: 0;
+        }
+        .admin-cash-status h5 { margin: 0 0 3px; font-size: 13px; font-weight: 700; color: #111827; }
+        .admin-cash-status p { margin: 0; font-size: 11.5px; color: #6b7280; line-height: 1.4; }
+
+        @media (max-width: 640px) {
+            .metode-bayar-grid { grid-template-columns: 1fr; }
+        }
+
         .revision-alert-box {
             background-color: #fffbebf8;
             border: 1px solid #fcc34d;
@@ -738,6 +798,108 @@
     <script>
         let berkasList = [];
 
+        // ---------- HELPER: STORAGE BERKAS PER-SISWA ----------
+        // Sebelumnya semua data berkas disimpan di 1 key global "berkas_pendaftar_current".
+        // Sekarang disimpan per-siswa "berkas_pendaftar_<id>" (supaya sinkron dengan
+        // halaman Data Pendaftar & Verifikasi Berkas), tapi key lama tetap ditulis juga
+        // supaya data lama/kompatibilitas tidak rusak.
+        function getCurrentStudentId() {
+            // FIX: sebelumnya cuma cek 'dataSiswaSPMB'. Tapi formulir.html nyimpen data
+            // pendaftar di key 'data_pendaftaran' — kalau 'dataSiswaSPMB' gak ada (kasus
+            // paling umum), fungsi ini selalu balikin id default '1', jadi berkas yang
+            // diunggah siswa gak nyambung ke id pendaftaran aslinya (SISWA-xxxxxxxxxx).
+            try {
+                const raw = localStorage.getItem('dataSiswaSPMB');
+                if (raw) {
+                    const d = JSON.parse(raw);
+                    if (d && d.id) return String(d.id);
+                }
+            } catch (e) {}
+            try {
+                const rawDaftar = localStorage.getItem('data_pendaftaran');
+                if (rawDaftar) {
+                    const d2 = JSON.parse(rawDaftar);
+                    if (d2 && d2.id) return String(d2.id);
+                }
+            } catch (e) {}
+            return '1';
+        }
+
+        // FIX: dulu getDynamicBerkasList() ambil data dari 'list_pendaftar' (array SEMUA
+        // siswa) dengan cara asal comot elemen pertama (parsed[0]) tanpa mencocokkan siswa
+        // mana pun. Akibatnya, kalau admin mengedit Gelombang/Metode Pembayaran siswa lewat
+        // edit_pendaftar_admin.html, perubahan itu TIDAK nyambung ke halaman siswa yang
+        // bersangkutan (kecuali kebetulan dia elemen pertama array). Fungsi ini mencari
+        // record siswa yang benar di 'list_pendaftar' berdasarkan ID (fallback No.
+        // Pendaftaran / nama), supaya edit admin selalu ke-refleksikan dengan benar.
+        function getMatchedAdminRecord() {
+            try {
+                const rawList = localStorage.getItem('list_pendaftar');
+                if (!rawList) return null;
+                const list = JSON.parse(rawList);
+                if (!Array.isArray(list) || list.length === 0) return null;
+
+                const currentId = getCurrentStudentId();
+                let match = list.find(item => String(item.id) === String(currentId));
+                if (match) return match;
+
+                try {
+                    const raw = localStorage.getItem('data_pendaftaran');
+                    if (raw) {
+                        const d = JSON.parse(raw);
+                        const noPendaftaran = d.noPendaftaran || d.nomorPendaftaran;
+                        const nama = d.namaLengkap || d.nama;
+                        if (noPendaftaran) {
+                            match = list.find(item => (item.noReg || item.noPendaftaran) === noPendaftaran);
+                        }
+                        if (!match && nama) {
+                            match = list.find(item => item.nama && item.nama.toLowerCase() === nama.toLowerCase());
+                        }
+                    }
+                } catch (e) {}
+
+                return match || null;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function getBerkasStorageKey() {
+            return 'berkas_pendaftar_' + getCurrentStudentId();
+        }
+
+        function loadCurrentBerkas() {
+            try {
+                const perId = localStorage.getItem(getBerkasStorageKey());
+                if (perId && perId !== 'undefined') return JSON.parse(perId);
+            } catch (e) {}
+            try {
+                const legacy = localStorage.getItem('berkas_pendaftar_current');
+                return (legacy && legacy !== 'undefined') ? JSON.parse(legacy) : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function saveCurrentBerkas(dataObj) {
+            // FIX QUOTA: dulu file yang sama disimpan sampai 3-4x (di sini + sekali lagi
+            // di listener upload lewat 'file_' + key). Untuk file besar (scan ijazah dll),
+            // ini gampang bikin localStorage (~5-10MB/situs) kepenuhan diam-diam karena
+            // gak ada try-catch, jadi file terakhir gagal tersimpan tanpa pemberitahuan.
+            // Sekarang cuma nyimpen 1x per key, dibungkus try-catch supaya kalau memang
+            // kepenuhan, ada pesan jelas ke siswa, bukan gagal senyap.
+            const json = JSON.stringify(dataObj);
+            try {
+                localStorage.setItem(getBerkasStorageKey(), json);
+                localStorage.setItem('berkas_pendaftar_current', json); // kompatibilitas lama
+                return true;
+            } catch (e) {
+                console.error('Gagal menyimpan berkas (kemungkinan localStorage penuh):', e);
+                alert('Gagal menyimpan berkas. Kemungkinan ukuran file terlalu besar atau penyimpanan browser sudah penuh.\n\nCoba kompres/perkecil ukuran file, atau hapus berkas lama yang sudah tidak diperlukan, lalu unggah ulang.');
+                return false;
+            }
+        }
+
         function getDynamicBerkasList() {
             const list = [
                 { key: "kk", nama: "Fotokopi Kartu Keluarga (KK)", keterangan: "Kartu Keluarga", status: "belum", tanggal: "-", icon: "fa-file-lines" },
@@ -748,7 +910,7 @@
                 { key: "skl", nama: "Surat Keterangan Lulus (SKL) / Ijazah", keterangan: "SKL / Ijazah SMP/MTs", status: "belum", tanggal: "-", icon: "fa-file-lines" }
             ];
 
-            const localData = localStorage.getItem("dataSiswaSPMB") || localStorage.getItem("list_pendaftar");
+            const localData = localStorage.getItem("dataSiswaSPMB") || localStorage.getItem("data_pendaftaran");
             let isKip = false;
             let isGel2 = false;
 
@@ -760,6 +922,15 @@
             const gelombangStorage = localStorage.getItem('gelombang_pendaftaran');
             if (gelombangStorage && gelombangStorage.includes('2')) {
                 isGel2 = true;
+            }
+
+            // Cek metode pembayaran yang dipilih siswa (transfer / cash)
+            let metode = String(localStorage.getItem('metode_pembayaran') || '').toLowerCase();
+            if (!metode) {
+                try {
+                    const cb = loadCurrentBerkas();
+                    if (cb.metodePembayaran) metode = String(cb.metodePembayaran).toLowerCase();
+                } catch (e) {}
             }
 
             if (localData) {
@@ -776,15 +947,46 @@
                     if (gelVal.includes("2")) {
                         isGel2 = true;
                     }
+                    if (!metode && dataSiswa.metodePembayaran) {
+                        metode = String(dataSiswa.metodePembayaran).toLowerCase();
+                    }
                 } catch (e) {}
+            }
+
+            // FIX: data admin (list_pendaftar) adalah sumber PALING BARU kalau siswa ini
+            // sudah pernah diedit lewat edit_pendaftar_admin.html (mis. Gelombang atau Metode
+            // Pembayaran diganti admin). Begitu record yang benar ketemu, nilainya MENIMPA
+            // hasil deteksi di atas — supaya bukan data lama milik siswa sendiri yang dipakai.
+            const matchAdmin = getMatchedAdminRecord();
+            if (matchAdmin) {
+                if (matchAdmin.gelombang) {
+                    isGel2 = String(matchAdmin.gelombang).toLowerCase().includes("2");
+                }
+                if (matchAdmin.metodePembayaran) {
+                    metode = String(matchAdmin.metodePembayaran).toLowerCase();
+                }
+                const kpsValAdmin = String(matchAdmin.kpsKip || matchAdmin.kps || "").toLowerCase();
+                if (kpsValAdmin.includes("ya") || kpsValAdmin.includes("kip") || kpsValAdmin.includes("kks") || kpsValAdmin.includes("pkh") || kpsValAdmin.includes("true")) {
+                    isKip = true;
+                }
             }
 
             if (isKip) {
                 list.push({ key: "kps", nama: "Penerima KIP / KKS / PKH", keterangan: "Dokumen/Foto Kartu KIP/KKS/PKH", status: "belum", tanggal: "-", icon: "fa-credit-card" });
             }
 
+            // Baris pembayaran Gelombang 2 ikut ditaruh di tabel Daftar Berkas Persyaratan yang sama.
+            // - Metode transfer: baris "Bukti Transfer Pembayaran" dengan tombol unggah seperti berkas lain.
+            // - Metode cash/langsung: baris "Biaya Administrasi Pendaftaran Gelombang 2", read-only (isCash: true),
+            //   statusnya (Lunas/Belum Lunas) hanya bisa diubah admin lewat halaman Verifikasi Berkas.
+            // Catatan: formulir.html menyimpan nilai "langsung" untuk opsi bayar tunai (bukan "cash"),
+            // jadi keduanya dianggap sama di sini supaya tidak ketuker.
             if (isGel2) {
-                list.push({ key: "pembayaran", nama: "Bukti Transfer Pembayaran", keterangan: "Bukti Bayar Pendaftaran Gelombang 2", status: "belum", tanggal: "-", icon: "fa-file-invoice" });
+                if (metode === "transfer") {
+                    list.push({ key: "pembayaran", nama: "Bukti Transfer Pembayaran", keterangan: "Bukti Bayar Pendaftaran Gelombang 2", status: "belum", tanggal: "-", icon: "fa-file-invoice" });
+                } else if (metode === "cash" || metode === "langsung") {
+                    list.push({ key: "bayar-cash", nama: "Biaya Administrasi Pendaftaran Gel. 2", keterangan: "Bayar Tunai/Langsung di Sekolah (Rp 20.000)", status: "belum", tanggal: "-", icon: "fa-money-bill-wave", isCash: true });
+                }
             }
 
             return list;
@@ -808,13 +1010,7 @@
                 } catch(e){}
             }
 
-            let currentBerkas = {};
-            try {
-                const rawBerkas = localStorage.getItem("berkas_pendaftar_current");
-                currentBerkas = (rawBerkas && rawBerkas !== "undefined") ? JSON.parse(rawBerkas) : {};
-            } catch (e) {
-                currentBerkas = {};
-            }
+            let currentBerkas = loadCurrentBerkas();
 
             const statusDokumenMap = currentBerkas.statusDokumen || {};
 
@@ -822,6 +1018,17 @@
                 let targetKey = item.key;
                 if (item.key === 'kps') targetKey = 'kip';
                 if (item.key === 'pembayaran') targetKey = 'bayar';
+                if (item.key === 'bayar-cash') targetKey = 'bayar';
+
+                // Baris cash tidak pernah punya file — statusnya (lunas/belum) murni dari statusDokumen.
+                // Tanggalnya diambil dari statusDokumenTanggal (dicatat verifikasi_berkas.html setiap
+                // admin mengubah status), supaya siswa tahu SEJAK KAPAN status itu berubah.
+                if (item.isCash) {
+                    item.status = statusDokumenMap[targetKey] || 'belum';
+                    const tglMap = currentBerkas.statusDokumenTanggal || {};
+                    item.tanggal = tglMap[targetKey] || "-";
+                    return;
+                }
 
                 const savedData = currentBerkas[targetKey] || currentBerkas[item.key] || localStorage.getItem('file_' + item.key);
                 
@@ -856,13 +1063,7 @@
             const tbody = document.getElementById('berkasTableBody');
             tbody.innerHTML = '';
 
-            let currentBerkas = {};
-            try {
-                const rawBerkas = localStorage.getItem("berkas_pendaftar_current");
-                currentBerkas = (rawBerkas && rawBerkas !== "undefined") ? JSON.parse(rawBerkas) : {};
-            } catch(e) {
-                currentBerkas = {};
-            }
+            let currentBerkas = loadCurrentBerkas();
 
             const catatanRevisi = currentBerkas._catatanRevisi || "Mohon periksa kembali berkas/dokumen Anda yang ditandai revisi.";
 
@@ -884,6 +1085,34 @@
                 let statusHtml = '';
                 let actionHtml = '';
 
+                // BARIS KHUSUS: Biaya Administrasi Gel. 2 (Tunai) — read-only, diubah admin, tanpa unggah file.
+                if (item.isCash) {
+                    const lunas = item.status === 'lunas';
+                    statusHtml = lunas
+                        ? `<span class="badge-status-table status-verified"><i class="fa-solid fa-circle-check"></i> Lunas</span>`
+                        : `<span class="badge-status-table status-empty"><i class="fa-solid fa-circle-xmark"></i> Belum Lunas</span>`;
+                    actionHtml = `<span style="font-size: 11px; color: #9ca3af;">Dikonfirmasi admin</span>`;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>
+                            <div class="file-info">
+                                <div class="file-icon-box"><i class="fa-solid ${item.icon}"></i></div>
+                                <span>${item.nama}</span>
+                            </div>
+                        </td>
+                        <td style="color: #6b7280;">${item.keterangan}</td>
+                        <td>${statusHtml}</td>
+                        <td style="color: #6b7280; font-size: 12px;">${item.tanggal || '-'}</td>
+                        <td style="text-align: center;">
+                            <div class="action-btns" style="justify-content: center;">${actionHtml}</div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                    return;
+                }
+
                 // KONDISI STATUS MASING-MASING BERKAS BERDIRI SENDIRI (INDEPENDEN)
                 if (item.status === 'terverifikasi' || item.status === 'verified') {
                     statusHtml = `<span class="badge-status-table status-verified"><i class="fa-solid fa-circle-check"></i> Terverifikasi</span>`;
@@ -898,7 +1127,24 @@
                         <button class="btn-action" onclick="viewFile(${index})"><i class="fa-solid fa-eye"></i> Lihat</button>
                         <button class="btn-action btn-upload" onclick="triggerFilePicker(${index})"><i class="fa-solid fa-upload"></i> Unggah Ulang</button>
                     `;
+                } else if (item.status === 'belum') {
+                    // Status eksplisit "belum" = admin menerapkan aksi Pending/Belum Lengkap.
+                    // Label yang ditampilkan HARUS SAMA PERSIS ("Pending / Belum Lengkap"),
+                    // baik saat masih ada file lama tersimpan MAUPUN saat memang belum pernah
+                    // diunggah sama sekali — supaya sinkron dengan aksi admin, tidak lagi
+                    // ketimpa jadi "Menunggu Verifikasi" atau beda teks dengan "Belum Diunggah".
+                    statusHtml = `<span class="badge-status-table status-empty"><i class="fa-solid fa-triangle-exclamation"></i> Pending / Belum Lengkap</span>`;
+                    actionHtml = item.fileData
+                        ? `
+                            <button class="btn-action" onclick="viewFile(${index})"><i class="fa-solid fa-eye"></i> Lihat</button>
+                            <button class="btn-action btn-upload" onclick="triggerFilePicker(${index})"><i class="fa-solid fa-upload"></i> Unggah Ulang</button>
+                        `
+                        : `
+                            <button class="btn-action btn-upload" onclick="triggerFilePicker(${index})"><i class="fa-solid fa-upload"></i> Unggah</button>
+                        `;
                 } else if (item.fileData) {
+                    // Sampai di sini statusnya 'menunggu' (atau status lain yang belum
+                    // dikenal) dan memang ada file tersimpan -> baru dianggap menunggu verifikasi.
                     statusHtml = `<span class="badge-status-table status-process"><i class="fa-solid fa-spinner"></i> Menunggu Verifikasi</span>`;
                     actionHtml = `
                         <button class="btn-action" onclick="viewFile(${index})"><i class="fa-solid fa-eye"></i> Lihat</button>
@@ -960,11 +1206,7 @@
                     item.tanggal = tglStr;
                     item.isChanged = true;
 
-                    let currentBerkas = {};
-                    try {
-                        const rawBerkas = localStorage.getItem("berkas_pendaftar_current");
-                        currentBerkas = (rawBerkas && rawBerkas !== "undefined") ? JSON.parse(rawBerkas) : {};
-                    } catch(e) { currentBerkas = {}; }
+                    let currentBerkas = loadCurrentBerkas();
 
                     let targetKey = item.key;
                     if (item.key === 'kps') targetKey = 'kip';
@@ -981,8 +1223,12 @@
                         tanggal: tglStr
                     };
 
-                    localStorage.setItem("berkas_pendaftar_current", JSON.stringify(currentBerkas));
-                    localStorage.setItem('file_' + item.key, JSON.stringify(currentBerkas[targetKey]));
+                    // FIX QUOTA: baris 'file_' + item.key dihapus — itu duplikat ketiga/keempat
+                    // dari data yang sama. saveCurrentBerkas() di atas sudah cukup; verifikasi_berkas.html
+                    // tetap bisa baca lewat currentBerkas[key] (fallback 'file_'+key di sana masih
+                    // dijaga untuk data lama, tapi gak perlu ditulis ulang tiap kali upload).
+                    const berhasil = saveCurrentBerkas(currentBerkas);
+                    if (!berhasil) return; // jangan tandai "tersimpan" kalau memang gagal
 
                     hasChanges = true;
                     document.getElementById('btnSimpan').disabled = false;

@@ -913,6 +913,33 @@
             }
         }
 
+        /* HELPER: cari "id" siswa ini di data admin (list_pendaftar), dipakai untuk membaca
+           bucket status berkas miliknya sendiri: "berkas_pendaftar_<id>" (lihat verifikasi_berkas.html).
+           Dulu semua siswa berbagi 1 key global "berkas_pendaftar_current" sehingga status berkas
+           siswa satu bisa nyasar/tertukar ke siswa lain — sekarang tiap siswa punya bucket sendiri. */
+        function getIdBerkasSiswa(dataFormulirRaw) {
+            try {
+                const form = dataFormulirRaw ? JSON.parse(dataFormulirRaw) : {};
+                const noPendaftaran = form.noPendaftaran || "SPMB-2027-0001";
+                const nama = form.nama || "";
+
+                const listPendaftar = JSON.parse(localStorage.getItem("list_pendaftar") || "[]");
+                let match = null;
+                if (Array.isArray(listPendaftar)) {
+                    match = listPendaftar.find(item => (item.noReg || item.noPendaftaran) === noPendaftaran);
+                    if (!match && nama) {
+                        match = listPendaftar.find(item => item.nama && item.nama.toLowerCase() === nama.toLowerCase());
+                    }
+                }
+
+                if (match && match.id) return match.id;
+                if (form.id) return form.id;
+                return "1";
+            } catch (e) {
+                return "1";
+            }
+        }
+
         /* 1. SINKRONISASI DATA PROFILE & PROGRES PENDAFTARAN */
         function loadProfileData() {
             if (!localStorage.getItem("session_user")) {
@@ -932,8 +959,11 @@
             const berkasSiswa = localStorage.getItem("berkas_pendaftaran") || localStorage.getItem("berkas_pendaftar_current");
             const pasFoto = localStorage.getItem("pas_foto_siswa");
 
-            // MEMBACA STATUS LENGKAP ADMIN / BERKAS
-            const currentBerkas = JSON.parse(localStorage.getItem("berkas_pendaftar_current") || "{}");
+            // MEMBACA STATUS LENGKAP ADMIN / BERKAS — diambil dari bucket milik siswa ini sendiri
+            // (dicocokkan ke record admin di list_pendaftar via getIdBerkasSiswa), bukan dari
+            // 1 key global "berkas_pendaftar_current" yang dulu dipakai bareng-bareng semua siswa.
+            const idSiswaBerkas = getIdBerkasSiswa(dataFormulir);
+            const currentBerkas = JSON.parse(localStorage.getItem("berkas_pendaftar_" + idSiswaBerkas) || "{}");
             const globalStatus = currentBerkas._statusGlobal || localStorage.getItem("status_verifikasi_admin") || "process";
 
             let nama = "Calon Siswa 1";
@@ -1176,7 +1206,7 @@
 
         /* AUTO REFRESH KETIKA ADMIN MENGUBAH STATUS KELULUSAN DI TAB LAIN */
         window.addEventListener("storage", function(e) {
-            if (e.key === "list_pendaftar" || e.key === "berkas_pendaftar_current" || e.key === "status_verifikasi_admin") {
+            if (e.key === "list_pendaftar" || (e.key && e.key.indexOf("berkas_pendaftar_") === 0) || e.key === "status_verifikasi_admin") {
                 loadProfileData();
             }
         });

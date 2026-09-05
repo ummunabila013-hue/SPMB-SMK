@@ -637,41 +637,16 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Asal Sekolah<span>*</span></label>
-                        <input type="text" id="input_asal_sekolah" required>
-                    </div>
-
-                    <div class="form-group">
                         <label>NISN <span>*</span></label>
                         <input type="number" id="input_NISN" required>
                     </div>
 
                     <div class="form-group">
-                        <label>Nomor Hp Siswa (aktif)<span>*</span></label>
-                        <input type="number" id="input_nomor_hp_siswa" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Tempat Lahir<span>*</span></label>
-                        <input type="text" id="input_tempat_lahir" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Ukuran Fisik (Tinggi & Berat) <span>*</span></label>
+                        <label>Tempat, Tanggal Lahir<span>*</span></label>
                         <div class="form-row-split">
-                            <input type="number" id="input_tinggi" placeholder="Tinggi (cm)" required>
-                            <input type="number" id="input_berat" placeholder="Berat (kg)" required>
+                            <input type="text" id="input_tempat_lahir" placeholder="Tempat Lahir" required>
+                            <input type="date" id="input_tanggal_lahir" required>
                         </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Tanggal Lahir<span>*</span></label>
-                        <input type="date" id="input_tanggal_lahir" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Jumlah Saudara<span>*</span></label>
-                        <input type="number" id="input_jumlah_saudara" required>
                     </div>
 
                     <div class="form-group">
@@ -687,6 +662,39 @@
                     </div>
 
                     <div class="form-group">
+                        <label>Asal Sekolah<span>*</span></label>
+                        <input type="text" id="input_asal_sekolah" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nilai Rata-rata Raport<span>*</span></label>
+                        <input type="number" id="input_nilai_rata_rata" step="0.01" min="0" max="100" placeholder="cth. 85.50" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Agama<span>*</span></label>
+                        <input type="text" id="input_agama" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nomor Hp Siswa (aktif)<span>*</span></label>
+                        <input type="number" id="input_nomor_hp_siswa" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ukuran Fisik (Tinggi & Berat) <span>*</span></label>
+                        <div class="form-row-split">
+                            <input type="number" id="input_tinggi" placeholder="Tinggi (cm)" required>
+                            <input type="number" id="input_berat" placeholder="Berat (kg)" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Jumlah Saudara<span>*</span></label>
+                        <input type="number" id="input_jumlah_saudara" required>
+                    </div>
+
+                    <div class="form-group">
                         <label>Memiliki Kebutuhan Khusus? <span>*</span></label>
                         <div class="radio-group-container">
                             <label class="selection-option">
@@ -696,11 +704,6 @@
                                 <input type="radio" name="kebutuhan_khusus" value="tidak" required> Tidak
                             </label>
                         </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Agama<span>*</span></label>
-                        <input type="text" id="input_agama" required>
                     </div>
 
                     <div class="form-group">
@@ -848,7 +851,7 @@
                                 <input type="radio" name="ibu_kebutuhan_khusus" value="ya" required> Ya
                             </label>
                             <label class="selection-option">
-                                <input type="radio" name="ibu_kebutuhan_khusus_ibu" value="tidak" required> Tidak
+                                <input type="radio" name="ibu_kebutuhan_khusus" value="tidak" required> Tidak
                             </label>
                         </div>
                     </div>
@@ -1273,6 +1276,7 @@
             if (savedData) {
                 if (savedData.nama) document.getElementById('input_nama_lengkap_calon_siswa').value = savedData.nama;
                 if (savedData.asalSekolah) document.getElementById('input_asal_sekolah').value = savedData.asalSekolah;
+                if (savedData.nilaiRataRata) document.getElementById('input_nilai_rata_rata').value = savedData.nilaiRataRata;
                 if (savedData.nisn) document.getElementById('input_NISN').value = savedData.nisn;
                 if (savedData.hp) document.getElementById('input_nomor_hp_siswa').value = savedData.hp;
                 if (savedData.tempatLahir) document.getElementById('input_tempat_lahir').value = savedData.tempatLahir;
@@ -1291,7 +1295,7 @@
                     if (el) el.checked = true;
                 }
                 if (savedData.penerimaKps) {
-                    const el = document.querySelector(`input[name="penerima_kps"][value="${savedData.penerimaKps}"]`);
+                    const el = document.querySelector(`input[name="is_penerima_bantuan"][value="${savedData.penerimaKps}"]`);
                     if (el) {
                         el.checked = true;
                         toggleKphCard(savedData.penerimaKps === 'ya');
@@ -1321,16 +1325,30 @@
                 const tglDaftarFormat = `${now.getDate().toString().padStart(2, '0')} ${now.toLocaleString('id-ID', { month: 'short' })} ${now.getFullYear()}`;
                 
                 let existingData = JSON.parse(localStorage.getItem('data_pendaftaran')) || {};
-                const studentId = existingData.id || "SISWA-" + Date.now();
-                const noRegNumber = existingData.noReg || "SPMB-2027-" + Math.floor(1000 + Math.random() * 9000);
+
+                // FIX DUPLIKAT: 'data_pendaftaran' kadang kosong/ke-reset padahal siswa ini
+                // sebenarnya sudah pernah terdaftar di 'list_pendaftar'. Sebelum bikin id baru,
+                // cek dulu apakah NISN yang diisi sudah ada di daftar admin — kalau ada, pakai
+                // id & noReg yang sama supaya submit ulang MENG-UPDATE data lama, bukan bikin
+                // entri baru yang dobel.
+                const nisnInputForCek = document.getElementById('input_NISN').value;
+                let existingAdminRecord = null;
+                try {
+                    const listAdminCek = JSON.parse(localStorage.getItem('list_pendaftar')) || [];
+                    existingAdminRecord = listAdminCek.find(item => item.nisn && nisnInputForCek && String(item.nisn) === String(nisnInputForCek));
+                } catch (e) {}
+
+                const studentId = existingData.id || (existingAdminRecord && existingAdminRecord.id) || "SISWA-" + Date.now();
+                const noRegNumber = existingData.noReg || (existingAdminRecord && existingAdminRecord.noReg) || "SPMB-2027-" + Math.floor(1000 + Math.random() * 9000);
 
                 const dataPendaftaran = {
                     id: studentId,
                     noReg: noRegNumber,
                     tglDaftar: existingData.tglDaftar || tglDaftarFormat,
-                    status: existingData.status || "Aktif",
+                    status: existingData.status || "Menunggu Verifikasi",
                     nama: document.getElementById('input_nama_lengkap_calon_siswa').value,
                     asalSekolah: document.getElementById('input_asal_sekolah').value,
+                    nilaiRataRata: document.getElementById('input_nilai_rata_rata').value,
                     nisn: document.getElementById('input_NISN').value,
                     hp: document.getElementById('input_nomor_hp_siswa').value,
                     tempatLahir: document.getElementById('input_tempat_lahir').value,
@@ -1341,29 +1359,41 @@
                     jenisKelamin: getRadioVal('jenis_kelamin'),
                     kebutuhanKhusus: getRadioVal('kebutuhan_khusus'),
                     agama: document.getElementById('input_agama').value,
-                    penerimaKps: getRadioVal('penerima_kps'),
-                    jenisKartu: getCheckboxVals('jenis_kartu'),
+                    penerimaKps: getRadioVal('is_penerima_bantuan'),
+                    jenisKartu: getCheckboxVals('jenis_bantuan'),
                     namaAyah: document.getElementById('input_nama_ayah').value,
-                    pendidikanAyah: getSelectText('pendidikan_ayah'),
+                    pendidikanAyah: document.getElementById('pendidikan_ayah').value,
+                    pendidikanAyahText: getSelectText('pendidikan_ayah'),
                     pekerjaanAyah: document.getElementById('input_pekerjaan_ayah').value,
                     tahunAyah: document.getElementById('input_tahun_lahir_ayah').value,
-                    penghasilanAyah: getSelectText('penghasilan_ayah_select'),
+                    penghasilanAyah: document.getElementById('penghasilan_ayah_select').value,
+                    penghasilanAyahText: getSelectText('penghasilan_ayah_select'),
                     hpAyah: document.getElementById('input_nomor_telepon_ayah').value,
+                    khususAyah: getRadioVal('ayah_kebutuhan_khusus'),
                     namaIbu: document.getElementById('input_nama_ibu').value,
-                    pendidikanIbu: getSelectText('pendidikan_ibu'),
+                    pendidikanIbu: document.getElementById('pendidikan_ibu').value,
+                    pendidikanIbuText: getSelectText('pendidikan_ibu'),
                     pekerjaanIbu: document.getElementById('input_pekerjaan_ibu').value,
                     tahunIbu: document.getElementById('input_tahun_lahir_ibu').value,
-                    penghasilanIbu: getSelectText('penghasilan_ibu_select'),
+                    penghasilanIbu: document.getElementById('penghasilan_ibu_select').value,
+                    penghasilanIbuText: getSelectText('penghasilan_ibu_select'),
                     hpIbu: document.getElementById('input_nomor_telepon_ibu').value,
+                    khususIbu: getRadioVal('ibu_kebutuhan_khusus'),
                     namaWali: document.getElementById('input_nama_wali').value || "-",
-                    pendidikanWali: getSelectText('pendidikan_wali') || "-",
+                    pendidikanWali: document.getElementById('pendidikan_wali').value,
+                    pendidikanWaliText: getSelectText('pendidikan_wali') || "-",
                     pekerjaanWali: document.getElementById('input_pekerjaan_wali').value || "-",
-                    penghasilanWali: getSelectText('penghasilan_wali_select') || "-",
+                    penghasilanWali: document.getElementById('penghasilan_wali_select').value,
+                    penghasilanWaliText: getSelectText('penghasilan_wali_select') || "-",
                     hpWali: document.getElementById('input_nomor_telepon_wali').value || "-",
-                    provinsi: getSelectText('provinsi'),
-                    kabupaten: getSelectText('kabupaten'),
-                    kecamatan: getSelectText('kecamatan'),
-                    kelurahan: getSelectText('kelurahan'),
+                    provinsi: document.getElementById('provinsi').value,
+                    provinsiText: getSelectText('provinsi'),
+                    kabupaten: document.getElementById('kabupaten').value,
+                    kabupatenText: getSelectText('kabupaten'),
+                    kecamatan: document.getElementById('kecamatan').value,
+                    kecamatanText: getSelectText('kecamatan'),
+                    kelurahan: document.getElementById('kelurahan').value,
+                    kelurahanText: getSelectText('kelurahan'),
                     alamatLengkap: document.getElementById('input_alamat_lengkap').value,
                     rt: document.getElementById('input_rt').value,
                     rw: document.getElementById('input_rw').value,
@@ -1374,13 +1404,22 @@
                     jurusan1: getRadioVal('jurusan_pilihan_1'),
                     jurusan2: getRadioVal('jurusan_pilihan_2'),
                     gelombang: document.getElementById('gelombang_pendaftaran').value,
-                    metodePembayaran: document.getElementById('metode_pembayaran').value
+                    metodePembayaran: document.getElementById('metode_pembayaran').value,
+                    // FIX SINKRONISASI: dulu field ini gak pernah diisi, jadi halaman
+                    // Detail Pendaftar Admin gak pernah tahu data siswa mana yang lebih baru.
+                    // Sekarang di-set setiap kali form disimpan.
+                    lastUpdatedTs: now.getTime()
                 };
 
                 localStorage.setItem('data_pendaftaran', JSON.stringify(dataPendaftaran));
 
                 let listPendaftarAdmin = JSON.parse(localStorage.getItem('list_pendaftar')) || [];
-                const existingIndex = listPendaftarAdmin.findIndex(item => String(item.id) === String(dataPendaftaran.id));
+                // FIX DUPLIKAT: cocokkan juga lewat NISN, bukan cuma id — jaga-jaga kalau
+                // id di 'data_pendaftaran' beda sendiri dari yang ada di 'list_pendaftar'.
+                const existingIndex = listPendaftarAdmin.findIndex(item =>
+                    String(item.id) === String(dataPendaftaran.id) ||
+                    (item.nisn && dataPendaftaran.nisn && String(item.nisn) === String(dataPendaftaran.nisn))
+                );
 
                 if (existingIndex !== -1) {
                     listPendaftarAdmin[existingIndex] = dataPendaftaran;

@@ -586,6 +586,40 @@
             cursor: pointer;
         }
         .status-select:focus { border-color: #047857; }
+        .status-select:disabled {
+            background-color: #f1f5f9;
+            color: #94a3b8;
+            cursor: not-allowed;
+            border-color: #e2e8f0;
+        }
+        .btn-terapkan-baris {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 10px;
+            border: 1px solid #047857;
+            border-radius: 6px;
+            background-color: #047857;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-terapkan-baris:hover { background-color: #036349; }
+        .btn-terapkan-baris:disabled {
+            background-color: #f1f5f9;
+            color: #94a3b8;
+            border-color: #e2e8f0;
+            cursor: not-allowed;
+        }
+        .berkas-lock-note {
+            display: block;
+            font-size: 10.5px;
+            color: #b45309;
+            margin-top: 4px;
+            font-style: italic;
+        }
 
         /* INFO NOTE BAWAH TABEL */
         .info-note {
@@ -766,8 +800,8 @@
             <div class="sidebar-header">
                 <img src="img/logo.smk.png" alt="Logo SMK" class="logo-sekolah-img" onerror="this.src='https://via.placeholder.com/45';">
                 <div class="school-title">
-                    <h1>SMK Maarif</h1>
-                    <h2>Walisongo Kajoran</h2>
+                    <h1>SMK Ma'arif Walisongo Kajoran</h1>
+                    <h2>SPMB 2027/2028</h2>
                     <span class="admin-tag">Admin Panel</span>
                 </div>
             </div>
@@ -966,7 +1000,7 @@
                                 <th>Nama Calon Siswa</th>
                                 <th>Jurusan Pilihan</th>
                                 <th>Gelombang</th>
-                                <th>Nilai Akhir</th>
+                                <th>Nilai Rata-Rata Raport</th>
                                 <th>Status Seleksi</th>
                                 <th>Aksi</th>
                             </tr>
@@ -1088,7 +1122,17 @@
 
                     if (namaSingle) {
                         const existIndex = dataList.findIndex(item => (item.noReg === noRegSingle) || (item.nama && item.nama.toLowerCase() === namaSingle.toLowerCase()));
-                        
+
+                        // FIX BUG UTAMA: sebelumnya normalizedItem.statusSeleksi & .status selalu
+                        // default ke "Belum Diproses"/"Berkas Diverifikasi" (karena data_pendaftaran
+                        // milik siswa sendiri memang tidak pernah punya field ini). Saat digabung ke
+                        // dataList[existIndex], ini MENIMPA status kelulusan yang sudah di-set admin
+                        // sebelumnya — jadi setiap kali halaman ini dibuka ulang (pindah tab lalu balik
+                        // lagi), status "Lulus" yang sudah disimpan ke-reset balik jadi "Belum Diproses".
+                        // Sekarang: kalau siswa ini sudah pernah punya statusSeleksi/status tersimpan,
+                        // pertahankan nilai itu — jangan biarkan ketimpa nilai default.
+                        const existingRecord = existIndex !== -1 ? dataList[existIndex] : null;
+
                         const normalizedItem = {
                             id: parsedSingle.id || "1",
                             noReg: noRegSingle,
@@ -1098,11 +1142,12 @@
                             jurusan1: parsedSingle.jurusan1 || parsedSingle.pilihan1 || "PPLG",
                             jurusan2: parsedSingle.jurusan2 || parsedSingle.pilihan2 || "BCF",
                             gelombang: parsedSingle.gelombang || "Gelombang 1",
-                            status: parsedSingle.status || "Berkas Diverifikasi",
-                            statusSeleksi: parsedSingle.statusSeleksi || "Belum Diproses",
-                            nilaiAkhir: parsedSingle.nilaiAkhir || null,
+                            status: (existingRecord && existingRecord.status) || parsedSingle.status || "Berkas Diverifikasi",
+                            statusSeleksi: (existingRecord && existingRecord.statusSeleksi) || parsedSingle.statusSeleksi || "Belum Diproses",
+                            nilaiRataRata: parsedSingle.nilaiRataRata || parsedSingle.nilaiAkhir || null,
                             tglDaftar: parsedSingle.tglDaftar || "03 Agu 2026"
                         };
+
 
                         if (existIndex !== -1) {
                             dataList[existIndex] = { ...dataList[existIndex], ...normalizedItem };
@@ -1127,7 +1172,7 @@
                         gelombang: "Gelombang 1", 
                         status: "Berkas Diverifikasi",
                         statusSeleksi: "Belum Diproses",
-                        nilaiAkhir: null,
+                        nilaiRataRata: null,
                         tglDaftar: "03 Agu 2026"
                     }
                 ];
@@ -1163,6 +1208,17 @@
             document.getElementById('stat-verif').textContent = verif;
             document.getElementById('stat-proses').textContent = proses;
             document.getElementById('stat-diterima').textContent = diterima;
+        }
+
+        /* ---------- CEK APAKAH BERKAS SISWA SUDAH DIVERIFIKASI LENGKAP ---------- */
+        // "statusBerkas" diisi oleh halaman Verifikasi Berkas (nilai 'verified' berarti semua
+        // dokumen sudah diperiksa & disetujui admin). Sebagai fallback untuk data lama/dummy
+        // yang belum punya field ini, dicek juga teks "status" (mis. "Berkas Diverifikasi").
+        function isBerkasReady(s) {
+            if (s.statusBerkas) {
+                return s.statusBerkas === 'verified';
+            }
+            return (s.status || '').toLowerCase().includes('diverifikasi');
         }
 
         /* ---------- TABEL SELEKSI & KELULUSAN (dengan filter) ---------- */
@@ -1201,7 +1257,9 @@
                 const noPendaftaran = s.noReg || s.noPendaftaran || '-';
                 const jurusanDisplay = s.jurusan1 || s.jurusan || '-';
                 const statusSeleksi = s.statusSeleksi || 'Belum Diproses';
-                const nilaiDisplay = (s.nilaiAkhir !== undefined && s.nilaiAkhir !== null) ? Number(s.nilaiAkhir).toFixed(2) : '-';
+                const nilaiRataRataVal = (s.nilaiRataRata !== undefined && s.nilaiRataRata !== null && s.nilaiRataRata !== '') ? s.nilaiRataRata : s.nilaiAkhir;
+                const nilaiDisplay = (nilaiRataRataVal !== undefined && nilaiRataRataVal !== null && nilaiRataRataVal !== '') ? Number(nilaiRataRataVal).toFixed(2) : '-';
+                const berkasReady = isBerkasReady(s);
 
                 return `
                 <tr>
@@ -1214,25 +1272,65 @@
                     <td>${nilaiDisplay}</td>
                     <td><span class="badge ${STATUS_BADGE_CLASS[statusSeleksi]}"><i class="fa-solid ${STATUS_ICON[statusSeleksi]}"></i> ${statusSeleksi}</span></td>
                     <td>
-                        <select class="status-select" onchange="updateStatusSeleksi(${s.originalIndex}, this.value)">
-                            <option value="Belum Diproses" ${statusSeleksi === 'Belum Diproses' ? 'selected' : ''}>Belum Diproses</option>
-                            <option value="Lulus" ${statusSeleksi === 'Lulus' ? 'selected' : ''}>Lulus</option>
-                            <option value="Tidak Lulus" ${statusSeleksi === 'Tidak Lulus' ? 'selected' : ''}>Tidak Lulus</option>
-                            <option value="Cadangan" ${statusSeleksi === 'Cadangan' ? 'selected' : ''}>Cadangan</option>
-                        </select>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <select class="status-select" id="statusSelect-${s.originalIndex}" ${berkasReady ? '' : 'disabled'} title="${berkasReady ? '' : 'Berkas siswa ini belum diverifikasi lengkap oleh Admin'}">
+                                <option value="Belum Diproses" ${statusSeleksi === 'Belum Diproses' ? 'selected' : ''}>Belum Diproses</option>
+                                <option value="Lulus" ${statusSeleksi === 'Lulus' ? 'selected' : ''}>Lulus</option>
+                                <option value="Tidak Lulus" ${statusSeleksi === 'Tidak Lulus' ? 'selected' : ''}>Tidak Lulus</option>
+                                <option value="Cadangan" ${statusSeleksi === 'Cadangan' ? 'selected' : ''}>Cadangan</option>
+                            </select>
+                            <button type="button" class="btn-terapkan-baris" onclick="terapkanStatusBaris(${s.originalIndex})" ${berkasReady ? '' : 'disabled'} title="Terapkan status yang dipilih untuk siswa ini">
+                                <i class="fa-solid fa-check"></i> Terapkan
+                            </button>
+                        </div>
+                        ${berkasReady ? '' : '<span class="berkas-lock-note"><i class="fa-solid fa-lock"></i> Berkas belum lengkap</span>'}
                     </td>
                 </tr>
             `}).join('');
         }
 
+        // Dipanggil oleh tombol "Terapkan" per baris di kolom Aksi. Sebelumnya perubahan
+        // status langsung tersimpan begitu dropdown di-onchange — sekarang admin harus
+        // menekan tombol ini dulu untuk benar-benar menerapkan & menyimpannya, supaya
+        // tidak ada perubahan status yang ke-apply tanpa disengaja.
+        function terapkanStatusBaris(index) {
+            const selectEl = document.getElementById('statusSelect-' + index);
+            if (!selectEl) return;
+            updateStatusSeleksi(index, selectEl.value);
+        }
+
         /* ---------- UBAH STATUS SELEKSI DAN SIMPAN PERMANEN KE LOCALSTORAGE ---------- */
         function updateStatusSeleksi(index, newStatus) {
+            const s = seleksiData[index];
+
+            // PROTEKSI: siswa tidak boleh diluluskan/ditolak/dicadangkan sebelum semua
+            // berkasnya diverifikasi lengkap oleh Admin di halaman Verifikasi Berkas.
+            if (newStatus !== "Belum Diproses" && !isBerkasReady(s)) {
+                alert(`Belum bisa menentukan kelulusan untuk ${s.nama}.\n\nBerkas pendaftaran siswa ini belum diverifikasi lengkap oleh Admin. Silakan selesaikan verifikasi berkas terlebih dahulu di menu "Verifikasi Berkas".`);
+                renderSeleksiTable();
+                return;
+            }
+
             seleksiData[index].statusSeleksi = newStatus;
-            
+
+            // FIX: pendaftar.html & dashboard_admin.html menentukan status yang ditampilkan
+            // (termasuk hitungan kartu "Diterima") dengan prioritas `statusVerifikasi || status`
+            // — field "statusVerifikasi" itu diisi oleh halaman Verifikasi Berkas (mis. "Berkas
+            // Diverifikasi"). Sebelumnya di sini cuma field `.status` yang diubah, jadi hasil
+            // "Lulus/Diterima" selalu KETUTUP oleh statusVerifikasi lama dan tidak pernah
+            // kelihatan di halaman lain. Sekarang keduanya disinkronkan setiap kali diputuskan.
             if (newStatus === "Lulus") {
                 seleksiData[index].status = "Diterima";
+                seleksiData[index].statusVerifikasi = "Diterima";
+            } else if (newStatus === "Tidak Lulus") {
+                seleksiData[index].status = "Tidak Lulus";
+                seleksiData[index].statusVerifikasi = "Tidak Lulus";
+            } else if (newStatus === "Cadangan") {
+                seleksiData[index].status = "Cadangan";
+                seleksiData[index].statusVerifikasi = "Cadangan";
             } else if (newStatus === "Belum Diproses") {
                 seleksiData[index].status = "Sedang Diproses";
+                seleksiData[index].statusVerifikasi = "Berkas Diverifikasi";
             }
 
             localStorage.setItem("list_pendaftar", JSON.stringify(seleksiData));
@@ -1271,16 +1369,52 @@
             const pilihanStatus = prompt("Masukkan status kelulusan untuk siswa yang dipilih:\n(Ketik: Lulus / Tidak Lulus / Cadangan / Belum Diproses)", "Lulus");
             
             if (pilihanStatus && ["Lulus", "Tidak Lulus", "Cadangan", "Belum Diproses"].includes(pilihanStatus)) {
+                let diterapkan = 0;
+                let dilewati = [];
+
                 checkedBoxes.forEach(cb => {
                     const idx = cb.getAttribute('data-index');
+                    const s = seleksiData[idx];
+
+                    // Lewati siswa yang berkasnya belum diverifikasi lengkap, kecuali
+                    // admin memang mau mengembalikan status ke "Belum Diproses".
+                    if (pilihanStatus !== "Belum Diproses" && !isBerkasReady(s)) {
+                        dilewati.push(s.nama);
+                        return;
+                    }
+
                     seleksiData[idx].statusSeleksi = pilihanStatus;
-                    if (pilihanStatus === "Lulus") seleksiData[idx].status = "Diterima";
+                    // FIX: sinkronkan juga statusVerifikasi (lihat catatan di updateStatusSeleksi())
+                    // supaya hasil aksi massal ini juga langsung kelihatan di pendaftar.html & dashboard_admin.html.
+                    if (pilihanStatus === "Lulus") {
+                        seleksiData[idx].status = "Diterima";
+                        seleksiData[idx].statusVerifikasi = "Diterima";
+                    } else if (pilihanStatus === "Tidak Lulus") {
+                        seleksiData[idx].status = "Tidak Lulus";
+                        seleksiData[idx].statusVerifikasi = "Tidak Lulus";
+                    } else if (pilihanStatus === "Cadangan") {
+                        seleksiData[idx].status = "Cadangan";
+                        seleksiData[idx].statusVerifikasi = "Cadangan";
+                    } else if (pilihanStatus === "Belum Diproses") {
+                        seleksiData[idx].status = "Sedang Diproses";
+                        seleksiData[idx].statusVerifikasi = "Berkas Diverifikasi";
+                    }
+                    diterapkan++;
                 });
 
                 localStorage.setItem("list_pendaftar", JSON.stringify(seleksiData));
                 renderStats();
                 renderSeleksiTable();
-                alert(`Status ${checkedBoxes.length} siswa berhasil diperbarui menjadi "${pilihanStatus}".`);
+
+                let pesan = diterapkan > 0
+                    ? `Status ${diterapkan} siswa berhasil diperbarui menjadi "${pilihanStatus}".`
+                    : `Tidak ada status yang diperbarui.`;
+
+                if (dilewati.length > 0) {
+                    pesan += `\n\nDilewati karena berkas belum diverifikasi lengkap:\n- ${dilewati.join('\n- ')}`;
+                }
+
+                alert(pesan);
             } else if (pilihanStatus !== null) {
                 alert("Status tidak valid. Harap masukan pilihan yang sesuai.");
             }

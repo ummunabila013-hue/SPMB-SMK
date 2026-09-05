@@ -852,10 +852,6 @@
                                 <div class="info-icon"><i class="fa-solid fa-calendar-days"></i></div>
                                 <div><p class="info-label">Tanggal Daftar</p><p class="info-value" id="val_tglDaftar">-</p></div>
                             </div>
-                            <div class="info-item">
-                                <div class="info-icon"><i class="fa-solid fa-circle-check"></i></div>
-                                <div><p class="info-label">Status Pendaftaran</p><p class="info-value"><span class="badge" id="val_statusBadge">Aktif</span></p></div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -875,11 +871,13 @@
                     </div>
 
                     <div class="row-2">
-                        <div class="field"><label>Tempat Lahir<span class="req">*</span></label><input type="text" id="input_tempatLahir" class="req"></div>
-                        <div class="field"><label>Tanggal Lahir<span class="req">*</span></label><input type="text" id="input_tglLahir" class="req" placeholder="cth. 20 Mei 2008"></div>
-                    </div>
-
-                    <div class="row-2">
+                        <div class="field">
+                            <label>Tempat, Tanggal Lahir<span class="req">*</span></label>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <input type="text" id="input_tempatLahir" class="req" placeholder="Tempat Lahir">
+                                <input type="text" id="input_tglLahir" class="req" placeholder="cth. 20 Mei 2008">
+                            </div>
+                        </div>
                         <div class="field">
                             <label>Ukuran Fisik (Tinggi & Berat)<span class="req">*</span></label>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -887,6 +885,9 @@
                                 <input type="text" id="input_berat" class="req" placeholder="Berat (kg)">
                             </div>
                         </div>
+                    </div>
+
+                    <div class="row-2">
                         <div class="field"><label>Jumlah Saudara<span class="req">*</span></label><input type="number" id="input_saudara" class="req"></div>
                     </div>
 
@@ -1068,13 +1069,29 @@
                     <div class="section-head"><div class="section-icon"><i class="fa-solid fa-house"></i></div><h3 class="section-title">C. Data Tempat Tinggal Siswa</h3></div>
 
                     <div class="row-2">
-                        <div class="field"><label>Provinsi</label><input type="text" id="input_provinsi"></div>
-                        <div class="field"><label>Kabupaten / Kota</label><input type="text" id="input_kabupaten"></div>
+                        <div class="field"><label>Provinsi</label>
+                            <select id="select_provinsi">
+                                <option value="">Pilih Provinsi</option>
+                            </select>
+                        </div>
+                        <div class="field"><label>Kabupaten / Kota</label>
+                            <select id="select_kabupaten" disabled>
+                                <option value="">Pilih Kabupaten</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="row-2">
-                        <div class="field"><label>Kecamatan</label><input type="text" id="input_kecamatan"></div>
-                        <div class="field"><label>Desa / Kelurahan</label><input type="text" id="input_kelurahan"></div>
+                        <div class="field"><label>Kecamatan</label>
+                            <select id="select_kecamatan" disabled>
+                                <option value="">Pilih Kecamatan</option>
+                            </select>
+                        </div>
+                        <div class="field"><label>Desa / Kelurahan</label>
+                            <select id="select_kelurahan" disabled>
+                                <option value="">Pilih Kelurahan/Desa</option>
+                            </select>
+                        </div>
                     </div>
 
                     <div class="row-2">
@@ -1137,21 +1154,18 @@
                     <div class="row-2">
                         <div class="field">
                             <label>Gelombang Pendaftaran<span class="req">*</span></label>
-                            <select id="select_gelombang" class="req">
+                            <select id="select_gelombang" class="req" onchange="toggleMetodePembayaranField(this.value)">
                                 <option value="" disabled selected>Pilih Gelombang Pendaftaran</option>
                                 <option value="Gelombang 1">Gelombang 1 (Januari - Maret 2026)</option>
                                 <option value="Gelombang 2">Gelombang 2 (April - Juli 2026)</option>
                             </select>
                         </div>
-                        <div class="field">
-                            <label>Status Pendaftaran<span class="req">*</span></label>
-                            <select id="select_status" class="req">
-                                <option value="" disabled selected>Pilih Status</option>
-                                <option value="Aktif">Aktif</option>
-                                <option value="Menunggu Verifikasi">Menunggu Verifikasi</option>
-                                <option value="Terverifikasi">Terverifikasi</option>
-                                <option value="Diterima">Diterima</option>
-                                <option value="Ditolak">Ditolak</option>
+                        <div class="field" id="metodePembayaranFieldWrap" style="display:none;">
+                            <label>Metode Pembayaran (Biaya Gel. 2)<span class="req">*</span></label>
+                            <select id="select_metodePembayaran" class="req">
+                                <option value="" disabled selected>Pilih Metode Pembayaran</option>
+                                <option value="langsung">Bayar Langsung di Sekolah (Cash)</option>
+                                <option value="transfer">Transfer Bank (Via TF)</option>
                             </select>
                         </div>
                     </div>
@@ -1160,8 +1174,9 @@
                 <!-- SECTION E: DATA ASAL SEKOLAH -->
                 <div class="section">
                     <div class="section-head"><div class="section-icon"><i class="fa-solid fa-school"></i></div><h3 class="section-title">E. Data Asal Sekolah</h3></div>
-                    <div class="row-1">
+                    <div class="row-2">
                         <div class="field"><label>Asal Sekolah<span class="req">*</span></label><input type="text" id="input_asalSekolah" class="req"></div>
+                        <div class="field"><label>Nilai Rata-rata Raport<span class="req">*</span></label><input type="number" id="input_nilaiRataRata" class="req" step="0.01" min="0" max="100" placeholder="cth. 85.50"></div>
                     </div>
                 </div>
 
@@ -1202,6 +1217,166 @@
             if (el) el.checked = true;
         }
 
+        // ---------- DROPDOWN WILAYAH (PROVINSI/KABUPATEN/KECAMATAN/KELURAHAN) ----------
+        // Sumber data sama seperti formulir.html: API Wilayah Indonesia (emsifa).
+        // Menyimpan ID hasil pilihan (mis. provinsi) + nama teksnya (provinsiText),
+        // supaya format datanya konsisten dengan formulir.html & detail_pendaftar_admin.html
+        // (yang menampilkan `provinsiText || provinsi`, dst).
+        const baseWilayahAPI = 'https://www.emsifa.com/api-wilayah-indonesia/api';
+
+        const selProvinsi = document.getElementById('select_provinsi');
+        const selKabupaten = document.getElementById('select_kabupaten');
+        const selKecamatan = document.getElementById('select_kecamatan');
+        const selKelurahan = document.getElementById('select_kelurahan');
+
+        function getSelectText(id) {
+            const el = document.getElementById(id);
+            if (!el || el.selectedIndex < 0) return "";
+            return el.options[el.selectedIndex].textContent;
+        }
+
+        // Cari ID yang cocok dari daftar wilayah berdasarkan ID langsung (data baru dari formulir)
+        // ATAU berdasarkan nama teksnya (fallback untuk data lama/dummy yang cuma berupa nama, mis. "Magelang").
+        function findWilayahMatch(list, idOrName) {
+            if (!idOrName) return null;
+            const str = String(idOrName);
+            let match = list.find(w => String(w.id) === str);
+            if (!match) {
+                match = list.find(w => w.name.toLowerCase() === str.toLowerCase());
+            }
+            return match || null;
+        }
+
+        // Kalau nilai lama tidak ketemu sama sekali di daftar resmi, tetap tampilkan sebagai
+        // opsi custom (read-only pilihannya) supaya data lama tidak hilang begitu saja.
+        function addCustomOptionIfNeeded(selectEl, rawValue, matchedId) {
+            if (!rawValue || matchedId) return;
+            const opt = document.createElement('option');
+            opt.value = rawValue;
+            opt.textContent = rawValue + " (belum sesuai data wilayah resmi)";
+            opt.selected = true;
+            selectEl.appendChild(opt);
+        }
+
+        function populateSelect(selectEl, list, placeholder) {
+            selectEl.innerHTML = `<option value="">${placeholder}</option>`;
+            list.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.name;
+                selectEl.appendChild(opt);
+            });
+        }
+
+        function loadKabupatenEdit(provId, selectedKabIdOrName = null) {
+            selKabupaten.innerHTML = '<option value="">Pilih Kabupaten</option>';
+            selKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>';
+            selKelurahan.innerHTML = '<option value="">Pilih Kelurahan/Desa</option>';
+            selKecamatan.disabled = true;
+            selKelurahan.disabled = true;
+
+            if (!provId) { selKabupaten.disabled = true; return Promise.resolve(); }
+
+            return fetch(baseWilayahAPI + '/regencies/' + provId + '.json')
+                .then(res => res.json())
+                .then(regencies => {
+                    populateSelect(selKabupaten, regencies, "Pilih Kabupaten");
+                    selKabupaten.disabled = false;
+                    if (selectedKabIdOrName) {
+                        const match = findWilayahMatch(regencies, selectedKabIdOrName);
+                        if (match) selKabupaten.value = match.id;
+                        else addCustomOptionIfNeeded(selKabupaten, selectedKabIdOrName, null);
+                        return match ? match.id : null;
+                    }
+                    return null;
+                })
+                .catch(err => { console.error('Gagal memuat kabupaten:', err); return null; });
+        }
+
+        function loadKecamatanEdit(kabId, selectedKecIdOrName = null) {
+            selKecamatan.innerHTML = '<option value="">Pilih Kecamatan</option>';
+            selKelurahan.innerHTML = '<option value="">Pilih Kelurahan/Desa</option>';
+            selKelurahan.disabled = true;
+
+            if (!kabId) { selKecamatan.disabled = true; return Promise.resolve(); }
+
+            return fetch(baseWilayahAPI + '/districts/' + kabId + '.json')
+                .then(res => res.json())
+                .then(districts => {
+                    populateSelect(selKecamatan, districts, "Pilih Kecamatan");
+                    selKecamatan.disabled = false;
+                    if (selectedKecIdOrName) {
+                        const match = findWilayahMatch(districts, selectedKecIdOrName);
+                        if (match) selKecamatan.value = match.id;
+                        else addCustomOptionIfNeeded(selKecamatan, selectedKecIdOrName, null);
+                        return match ? match.id : null;
+                    }
+                    return null;
+                })
+                .catch(err => { console.error('Gagal memuat kecamatan:', err); return null; });
+        }
+
+        function loadKelurahanEdit(kecId, selectedKelIdOrName = null) {
+            selKelurahan.innerHTML = '<option value="">Pilih Kelurahan/Desa</option>';
+
+            if (!kecId) { selKelurahan.disabled = true; return Promise.resolve(); }
+
+            return fetch(baseWilayahAPI + '/villages/' + kecId + '.json')
+                .then(res => res.json())
+                .then(villages => {
+                    populateSelect(selKelurahan, villages, "Pilih Kelurahan/Desa");
+                    selKelurahan.disabled = false;
+                    if (selectedKelIdOrName) {
+                        const match = findWilayahMatch(villages, selectedKelIdOrName);
+                        if (match) selKelurahan.value = match.id;
+                        else addCustomOptionIfNeeded(selKelurahan, selectedKelIdOrName, null);
+                    }
+                })
+                .catch(err => console.error('Gagal memuat kelurahan:', err));
+        }
+
+        selProvinsi.addEventListener('change', function() { loadKabupatenEdit(this.value); });
+        selKabupaten.addEventListener('change', function() { loadKecamatanEdit(this.value); });
+        selKecamatan.addEventListener('change', function() { loadKelurahanEdit(this.value); });
+
+        // Muat daftar provinsi sekali di awal, lalu cocokkan data siswa yang sedang diedit
+        // (mendukung data lama berupa nama biasa maupun data baru berupa ID dari formulir.html).
+        let provinsiListCache = [];
+        const provinsiReady = fetch(baseWilayahAPI + '/provinces.json')
+            .then(res => res.json())
+            .then(provinces => {
+                provinsiListCache = provinces;
+                populateSelect(selProvinsi, provinces, "Pilih Provinsi");
+            })
+            .catch(err => console.error('Gagal memuat provinsi:', err));
+
+        function initWilayahDropdowns(currentSiswa) {
+            provinsiReady.then(async () => {
+                const provVal = currentSiswa.provinsiText || currentSiswa.provinsi;
+                const kabVal = currentSiswa.kabupatenText || currentSiswa.kabupaten;
+                const kecVal = currentSiswa.kecamatanText || currentSiswa.kecamatan;
+                const kelVal = currentSiswa.kelurahanText || currentSiswa.kelurahan;
+
+                if (!provVal) return;
+
+                const matchProv = findWilayahMatch(provinsiListCache, provVal);
+                if (matchProv) {
+                    selProvinsi.value = matchProv.id;
+                } else {
+                    addCustomOptionIfNeeded(selProvinsi, provVal, null);
+                    return; // tanpa provinsi valid, jenjang di bawahnya tidak bisa dimuat dari API
+                }
+
+                const kabId = await loadKabupatenEdit(matchProv.id, kabVal);
+                if (!kabId) return;
+
+                const kecId = await loadKecamatanEdit(kabId, kecVal);
+                if (!kecId) return;
+
+                await loadKelurahanEdit(kecId, kelVal);
+            });
+        }
+
         function loadPendaftarData() {
             const urlParams = new URLSearchParams(window.location.search);
             const siswaId = urlParams.get('id');
@@ -1219,7 +1394,7 @@
                 currentSiswa = {
                     id: "1", nama: "Calon Siswa 1", nisn: "0081234567", noReg: "SPMB-2027-0001", sekolah: "SMP N 1 Kajoran",
                     jurusan1: "PPLG", jurusan2: "BCF", gelombang: "Gelombang 1", status: "Aktif", tglDaftar: "03 Agu 2026",
-                    tempatLahir: "Magelang", tglLahir: "20 Mei 2008", jk: "Laki-laki", hp: "081234567890", fisik: "165 cm / 55 kg",
+                    tempatLahir: "Magelang", tglLahir: "20 Mei 2008", jk: "Laki-laki", hp: "081234567890", fisik: "165 cm / 55 kg", nilaiRataRata: "",
                     saudara: "2", agama: "Islam", kebutuhanKhusus: "Tidak", kpsKip: "Tidak", namaAyah: "Budi Santoso",
                     pendidikanAyah: "SMA / MA / SMK", pekerjaanAyah: "Wiraswasta", tahunAyah: "1978", penghasilanAyah: "Rp 2.000.000 - Rp 4.999.999",
                     hpAyah: "081223344556", khususAyah: "Tidak", namaIbu: "Siti Aminah", pendidikanIbu: "SMA / MA / SMK", pekerjaanIbu: "Ibu Rumah Tangga",
@@ -1235,7 +1410,6 @@
             // Panel info ringkas
             document.getElementById('val_noReg').innerText = currentSiswa.noReg || currentSiswa.noPendaftaran || "-";
             document.getElementById('val_tglDaftar').innerText = currentSiswa.tglDaftar || "-";
-            document.getElementById('val_statusBadge').innerText = currentSiswa.status || "Aktif";
 
             // A. Biodata Siswa
             setVal('input_nama', currentSiswa.nama);
@@ -1280,11 +1454,9 @@
             setVal('select_penghasilanWali', currentSiswa.penghasilanWali);
             setVal('input_hpWali', currentSiswa.hpWali);
 
-            // C. Alamat
-            setVal('input_provinsi', currentSiswa.provinsi);
-            setVal('input_kabupaten', currentSiswa.kabupaten);
-            setVal('input_kecamatan', currentSiswa.kecamatan);
-            setVal('input_kelurahan', currentSiswa.kelurahan);
+            // C. Alamat — provinsi/kabupaten/kecamatan/kelurahan sekarang dropdown berjenjang
+            // dari API wilayah Indonesia (lihat initWilayahDropdowns()), bukan input teks bebas lagi.
+            initWilayahDropdowns(currentSiswa);
             setVal('input_kodePos', currentSiswa.kodePos);
             setVal('input_alamatLengkap', currentSiswa.alamatLengkap);
 
@@ -1296,17 +1468,41 @@
             setVal('input_transportasi', currentSiswa.transportasi);
             setVal('input_jarakSekolah', currentSiswa.jarakSekolah);
 
-            // D. Jurusan & Gelombang & Status
+            // D. Jurusan & Gelombang
             setRadio('jurusan1', currentSiswa.jurusan1 || currentSiswa.j1);
             setRadio('jurusan2', currentSiswa.jurusan2 || currentSiswa.j2);
             setVal('select_gelombang', currentSiswa.gelombang);
-            setVal('select_status', currentSiswa.status);
+
+            // Metode Pembayaran cuma relevan/wajib untuk Gelombang 2 (lihat formulir.html).
+            // "langsung" = bayar tunai di sekolah, "transfer" = transfer bank, "gratis" = Gelombang 1 (tidak dipakai).
+            const metodeAwal = currentSiswa.metodePembayaran || "";
+            setVal('select_metodePembayaran', (metodeAwal === 'gratis') ? "" : metodeAwal);
+            toggleMetodePembayaranField(currentSiswa.gelombang);
 
             // E. Asal Sekolah
             setVal('input_asalSekolah', currentSiswa.sekolah || currentSiswa.asalSekolah);
+            setVal('input_nilaiRataRata', currentSiswa.nilaiRataRata);
 
             // Tombol batal kembali ke halaman detail pendaftar ini
             document.getElementById('btnKembali').href = `detail_pendaftar_admin.html?id=${currentId}`;
+        }
+
+        // Field Metode Pembayaran cuma ditampilkan & wajib diisi kalau Gelombang 2 dipilih,
+        // sama seperti perilaku formulir pendaftaran siswa (toggleGelombang di formulir.html).
+        function toggleMetodePembayaranField(gelombangVal) {
+            const wrap = document.getElementById('metodePembayaranFieldWrap');
+            const select = document.getElementById('select_metodePembayaran');
+            if (!wrap || !select) return;
+
+            if (gelombangVal === 'Gelombang 2') {
+                wrap.style.display = 'block';
+                select.classList.add('req');
+            } else {
+                wrap.style.display = 'none';
+                select.classList.remove('req');
+                select.classList.remove('invalid');
+                select.value = "";
+            }
         }
 
         function validateForm() {
@@ -1337,6 +1533,10 @@
             if (idx === -1) idx = 0;
 
             const existing = dataList[idx] || {};
+            const now = new Date();
+            const tanggal = now.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
+            const jam = now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+            const updatedTimestamp = `${tanggal}, ${jam} WIB`;
             const selPendAyah = document.getElementById('select_pendidikanAyah');
             const selPengAyah = document.getElementById('select_penghasilanAyah');
             const selPendIbu = document.getElementById('select_pendidikanIbu');
@@ -1355,6 +1555,8 @@
                 nisn: document.getElementById('input_nisn').value.trim(),
                 sekolah: document.getElementById('input_sekolah').value.trim(),
                 asalSekolah: document.getElementById('input_asalSekolah').value.trim(),
+                nilaiRataRata: document.getElementById('input_nilaiRataRata').value.trim(),
+                nilaiAkhir: document.getElementById('input_nilaiRataRata').value.trim(),
                 hp: document.getElementById('input_hp').value.trim(),
                 tempatLahir: document.getElementById('input_tempatLahir').value.trim(),
                 tglLahir: document.getElementById('input_tglLahir').value.trim(),
@@ -1387,10 +1589,14 @@
                 penghasilanWali: selPengWali.value || "-",
                 hpWali: document.getElementById('input_hpWali').value.trim() || "-",
 
-                provinsi: document.getElementById('input_provinsi').value.trim(),
-                kabupaten: document.getElementById('input_kabupaten').value.trim(),
-                kecamatan: document.getElementById('input_kecamatan').value.trim(),
-                kelurahan: document.getElementById('input_kelurahan').value.trim(),
+                provinsi: document.getElementById('select_provinsi').value,
+                provinsiText: getSelectText('select_provinsi'),
+                kabupaten: document.getElementById('select_kabupaten').value,
+                kabupatenText: getSelectText('select_kabupaten'),
+                kecamatan: document.getElementById('select_kecamatan').value,
+                kecamatanText: getSelectText('select_kecamatan'),
+                kelurahan: document.getElementById('select_kelurahan').value,
+                kelurahanText: getSelectText('select_kelurahan'),
                 kodePos: document.getElementById('input_kodePos').value.trim(),
                 alamatLengkap: document.getElementById('input_alamatLengkap').value.trim(),
                 rtRw: `RT ${rt} / RW ${rw}`,
@@ -1401,16 +1607,138 @@
                 jurusan1: document.querySelector('input[name="jurusan1"]:checked')?.value || existing.jurusan1,
                 jurusan2: document.querySelector('input[name="jurusan2"]:checked')?.value || existing.jurusan2,
                 gelombang: document.getElementById('select_gelombang').value,
-                status: document.getElementById('select_status').value
+                metodePembayaran: (document.getElementById('select_gelombang').value === 'Gelombang 2')
+                    ? document.getElementById('select_metodePembayaran').value
+                    : 'gratis',
+                status: existing.status,
+                lastUpdated: updatedTimestamp,
+                lastUpdatedTs: now.getTime()
             };
 
             dataList[idx] = updated;
             localStorage.setItem("list_pendaftar", JSON.stringify(dataList));
 
+            // Sinkronkan juga ke data milik siswa (data_pendaftaran), supaya perubahan
+            // yang dibuat admin lewat halaman ini langsung ikut muncul di halaman
+            // biodata_siswa.html / edit_data_siswa.html milik siswa yang bersangkutan.
+            syncAdminEditToSiswaData(updated);
+
             showToast("Perubahan berhasil disimpan.");
             setTimeout(() => {
                 window.location.href = `detail_pendaftar_admin.html?id=${currentId}`;
             }, 1200);
+        }
+
+        // ==========================================
+        // SINKRONISASI: Edit Admin -> Data Siswa (data_pendaftaran)
+        // Skema field admin (list_pendaftar) berbeda penamaan dengan skema
+        // siswa (data_pendaftaran), jadi field-nya dipetakan satu per satu di sini.
+        // Hanya berlaku kalau data_pendaftaran di browser ini memang milik
+        // pendaftar yang sama (dicocokkan lewat No. Pendaftaran atau nama).
+        // ==========================================
+        function syncAdminEditToSiswaData(adminData) {
+            try {
+                const raw = localStorage.getItem('data_pendaftaran');
+                if (!raw) return; // Tidak ada data siswa tersimpan di browser ini
+
+                let siswaData = JSON.parse(raw);
+
+                const noReg = adminData.noReg || adminData.noPendaftaran;
+                // FIX: formulir.html menyimpan nomor pendaftaran dengan nama field "noReg",
+                // bukan "noPendaftaran"/"nomorPendaftaran" — sebelumnya perbandingan ini SELALU
+                // gagal karena field yang dicek salah, jadi pencocokan cuma pernah lewat nama.
+                const noPendaftaranSiswa = siswaData.noReg || siswaData.noPendaftaran || siswaData.nomorPendaftaran;
+                const namaAdmin = (adminData.nama || '').toLowerCase();
+                const namaSiswa = (siswaData.namaLengkap || siswaData.nama || '').toLowerCase();
+
+                const isMatch = (noReg && noPendaftaranSiswa && noReg === noPendaftaranSiswa) ||
+                                (namaAdmin && namaSiswa && namaAdmin === namaSiswa);
+                if (!isMatch) return;
+
+                const fisikParts = String(adminData.fisik || '').split('/');
+                const tinggiFromFisik = (fisikParts[0] || '').replace(/[^0-9]/g, '').trim();
+                const beratFromFisik = (fisikParts[1] || '').replace(/[^0-9]/g, '').trim();
+
+                const rtRwParts = String(adminData.rtRw || '').split('/');
+                const rtFromRtRw = (rtRwParts[0] || '').replace(/[^0-9]/g, '').trim();
+                const rwFromRtRw = (rtRwParts[1] || '').replace(/[^0-9]/g, '').trim();
+
+                siswaData = {
+                    ...siswaData,
+                    nama: adminData.nama ?? siswaData.nama,
+                    namaLengkap: adminData.nama ?? siswaData.namaLengkap,
+                    nisn: adminData.nisn ?? siswaData.nisn,
+                    asalSekolah: adminData.asalSekolah ?? adminData.sekolah ?? siswaData.asalSekolah,
+                    nilaiRataRata: adminData.nilaiRataRata ?? siswaData.nilaiRataRata,
+                    hp: adminData.hp ?? siswaData.hp,
+                    tempatLahir: adminData.tempatLahir ?? siswaData.tempatLahir,
+                    tglLahir: adminData.tglLahir ?? siswaData.tglLahir,
+                    tinggi: adminData.tinggi || tinggiFromFisik || siswaData.tinggi,
+                    berat: adminData.berat || beratFromFisik || siswaData.berat,
+                    jumlahSaudara: adminData.saudara ?? siswaData.jumlahSaudara,
+                    agama: adminData.agama ?? siswaData.agama,
+                    jenisKelamin: adminData.jk ?? siswaData.jenisKelamin,
+                    kebutuhanKhusus: adminData.kebutuhanKhusus ? adminData.kebutuhanKhusus.toLowerCase() : siswaData.kebutuhanKhusus,
+                    penerimaKps: adminData.penerimaKps ?? (adminData.kpsKip ? adminData.kpsKip.toLowerCase() : siswaData.penerimaKps),
+                    jenisKartu: adminData.jenisKartu ?? siswaData.jenisKartu,
+
+                    namaAyah: adminData.namaAyah ?? siswaData.namaAyah,
+                    pendidikanAyah: adminData.pendidikanAyah ?? siswaData.pendidikanAyah,
+                    pendidikanAyahText: adminData.pendidikanAyahText ?? siswaData.pendidikanAyahText,
+                    pekerjaanAyah: adminData.pekerjaanAyah ?? siswaData.pekerjaanAyah,
+                    tahunAyah: adminData.tahunAyah ?? siswaData.tahunAyah,
+                    penghasilanAyah: adminData.penghasilanAyah ?? siswaData.penghasilanAyah,
+                    penghasilanAyahText: adminData.penghasilanAyahText ?? siswaData.penghasilanAyahText,
+                    hpAyah: adminData.hpAyah ?? siswaData.hpAyah,
+                    khususAyah: adminData.khususAyah ? adminData.khususAyah.toLowerCase() : siswaData.khususAyah,
+
+                    namaIbu: adminData.namaIbu ?? siswaData.namaIbu,
+                    pendidikanIbu: adminData.pendidikanIbu ?? siswaData.pendidikanIbu,
+                    pendidikanIbuText: adminData.pendidikanIbuText ?? siswaData.pendidikanIbuText,
+                    pekerjaanIbu: adminData.pekerjaanIbu ?? siswaData.pekerjaanIbu,
+                    tahunIbu: adminData.tahunIbu ?? siswaData.tahunIbu,
+                    penghasilanIbu: adminData.penghasilanIbu ?? siswaData.penghasilanIbu,
+                    penghasilanIbuText: adminData.penghasilanIbuText ?? siswaData.penghasilanIbuText,
+                    hpIbu: adminData.hpIbu ?? siswaData.hpIbu,
+                    khususIbu: adminData.khususIbu ? adminData.khususIbu.toLowerCase() : siswaData.khususIbu,
+
+                    namaWali: adminData.namaWali ?? siswaData.namaWali,
+                    pendidikanWali: adminData.pendidikanWali ?? siswaData.pendidikanWali,
+                    pendidikanWaliText: adminData.pendidikanWaliText ?? siswaData.pendidikanWaliText,
+                    pekerjaanWali: adminData.pekerjaanWali ?? siswaData.pekerjaanWali,
+                    penghasilanWali: adminData.penghasilanWali ?? siswaData.penghasilanWali,
+                    penghasilanWaliText: adminData.penghasilanWaliText ?? siswaData.penghasilanWaliText,
+                    hpWali: adminData.hpWali ?? siswaData.hpWali,
+
+                    provinsi: adminData.provinsi ?? siswaData.provinsi,
+                    provinsiText: adminData.provinsiText ?? siswaData.provinsiText,
+                    kabupaten: adminData.kabupaten ?? siswaData.kabupaten,
+                    kabupatenText: adminData.kabupatenText ?? siswaData.kabupatenText,
+                    kecamatan: adminData.kecamatan ?? siswaData.kecamatan,
+                    kecamatanText: adminData.kecamatanText ?? siswaData.kecamatanText,
+                    kelurahan: adminData.kelurahan ?? siswaData.kelurahan,
+                    kelurahanText: adminData.kelurahanText ?? siswaData.kelurahanText,
+                    kodePos: adminData.kodePos ?? siswaData.kodePos,
+                    alamatLengkap: adminData.alamatLengkap ?? siswaData.alamatLengkap,
+                    rt: adminData.rt || rtFromRtRw || siswaData.rt,
+                    rw: adminData.rw || rwFromRtRw || siswaData.rw,
+                    jenisTinggal: adminData.jenisTinggal ?? siswaData.jenisTinggal,
+                    transportasi: adminData.transportasi ?? siswaData.transportasi,
+                    jarakSekolah: adminData.jarakSekolah ?? siswaData.jarakSekolah,
+
+                    jurusan1: adminData.jurusan1 ?? siswaData.jurusan1,
+                    jurusan2: adminData.jurusan2 ?? siswaData.jurusan2,
+                    gelombang: adminData.gelombang ?? siswaData.gelombang,
+                    metodePembayaran: adminData.metodePembayaran ?? siswaData.metodePembayaran,
+
+                    lastUpdated: adminData.lastUpdated || siswaData.lastUpdated,
+                    lastUpdatedTs: adminData.lastUpdatedTs || siswaData.lastUpdatedTs
+                };
+
+                localStorage.setItem('data_pendaftaran', JSON.stringify(siswaData));
+            } catch (e) {
+                console.error('Gagal sinkronisasi perubahan admin ke data siswa:', e);
+            }
         }
 
         function toggleCmsMenu() {

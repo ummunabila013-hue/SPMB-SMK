@@ -428,14 +428,20 @@
             position: relative;
         }
 
-        .ppdb-step-line {
-            position: absolute;
-            top: 35%;
-            left: 8%;
-            width: 84%;
-            height: 2px;
-            border-top: 2px dashed #cbd5e1;
-            z-index: 1;
+        .flow-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            align-self: center;
+            margin-top: -26px;
+            flex: 0 0 auto;
+            color: #9fd6c9;
+            z-index: 2;
+        }
+
+        .flow-arrow svg {
+            width: 26px;
+            height: 26px;
         }
 
         .flow-step-item {
@@ -503,8 +509,10 @@
                 padding: 40px 0; 
                 gap: 30px; 
             }
-            .ppdb-step-line { 
-                display: none; 
+            .flow-arrow {
+                align-self: center;
+                margin-top: 0;
+                transform: rotate(90deg);
             }
         }
 
@@ -1052,16 +1060,21 @@
     <section class="ppdb-flow-container">
         <div class="ppdb-flow-card">
             <div class="ppdb-sidebar-green">
-                <h3 id="ppdbTitle">SISTEM SPMB ONLINE</h3>
-                <p id="ppdbDesc">"Solusi praktis pendaftaran bagi calon siswa baru yang terkendala jarak dan waktu. Nikmati kemudahan pengisian formulir hingga unggah berkas cukup lewat smartphone Anda."</p>
+                <h3 id="ppdbTitle"> SPMB ONLINE</h3>
+                <p id="ppdbDesc">"Panduan lengkap tahapan SPMB online. Seluruh proses verifikasi dan unggah berkas dilakukan secraa digital tanpa perlu repot datang ke sekolah di awal."</p>
             </div>
             <div class="ppdb-flow-steps" id="ppdbSteps">
-                <div class="ppdb-step-line"></div>
                 <div class="flow-step-item">
                     <div class="flow-icon-circle"><img src="img/orangtambah.png" alt="Buat Akun"></div>
                     <div class="flow-step-num">LANGKAH 1</div>
                     <div class="flow-step-title">Buat Akun</div>
                     <div class="flow-step-desc">Log in dan lengkapi data diri anda untuk membuat akun pendaftaran.</div>
+                </div>
+                <div class="flow-arrow" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="4" y1="12" x2="20" y2="12"></line>
+                        <polyline points="13 5 20 12 13 19"></polyline>
+                    </svg>
                 </div>
                 <div class="flow-step-item">
                     <div class="flow-icon-circle"><img src="img/note.png" alt="Isi Formulir"></div>
@@ -1069,17 +1082,35 @@
                     <div class="flow-step-title">Isi Formulir</div>
                     <div class="flow-step-desc">Isi formulir biodata siswa secara lengkap dan benar.</div>
                 </div>
+                <div class="flow-arrow" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="4" y1="12" x2="20" y2="12"></line>
+                        <polyline points="13 5 20 12 13 19"></polyline>
+                    </svg>
+                </div>
                 <div class="flow-step-item">
                     <div class="flow-icon-circle"><img src="img/i_cloud.png" alt="Unggah Berkas"></div>
                     <div class="flow-step-num">LANGKAH 3</div>
                     <div class="flow-step-title">Unggah Berkas</div>
                     <div class="flow-step-desc">Upload berkas administrasi seperti KK dan Akta Kelahiran.</div>
                 </div>
+                <div class="flow-arrow" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="4" y1="12" x2="20" y2="12"></line>
+                        <polyline points="13 5 20 12 13 19"></polyline>
+                    </svg>
+                </div>
                 <div class="flow-step-item">
                     <div class="flow-icon-circle"><img src="img/centang.png" alt="Verifikasi"></div>
                     <div class="flow-step-num">LANGKAH 4</div>
                     <div class="flow-step-title">Verifikasi Data</div>
                     <div class="flow-step-desc">Tunggu proses pengecekan berkas oleh panitia sekolah.</div>
+                </div>
+                <div class="flow-arrow" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="4" y1="12" x2="20" y2="12"></line>
+                        <polyline points="13 5 20 12 13 19"></polyline>
+                    </svg>
                 </div>
                 <div class="flow-step-item">
                     <div class="flow-icon-circle"><img src="img/badge_reward.png" alt="Pengumuman"></div>
@@ -1117,17 +1148,23 @@
                     <div class="jadwal-item"><span class="jadwal-gel">Gelombang 1</span><span class="jadwal-tgl">Januari - Maret 2026</span></div>
                     <div class="jadwal-item"><span class="jadwal-gel">Gelombang 2</span><span class="jadwal-tgl">April - Juli 2026</span></div>
                 </div>
-                <div class="visi-label" style="margin-bottom: 10px;">Syarat Pendaftaran</div>
+                <div class="visi-label" style="margin-bottom: 10px;">Syarat Pendaftaran Online</div>
                 <ul class="misi-list" id="syaratList">
-                    <li>Mengisi Formulir Pendaftaran</li>
-                    <li>Foto Copy Kartu Keluarga</li>
-                    <li>Pas foto ukuran 3x4 [4 lembar] </li>
-                    <li>Pas foto ukuran 4x6 [2 lembar]</li>
-                    <li>Biaya pendaftaran Rp.20.000 [Khusus gel. II]</li>
-                    <li>Foto Copy KIP,PKH,KPS,KIS, bagi yang memiliki</li>
-                    <li>Foto copy KTP kedua orang tua</li>
-                    <li>Foto copy Akta Kelahiran</li>
+                    <li>Mengisi Formulir Pendaftaran secara online</li>
+                    <li>Foto / DokumenKartu Keluarga</li>
+                    <li>Pas foto warna ukuran 3x4</li>
+                    <li>Pas foto warna ukuran 4x6</li>
+                    <li>Biaya pendaftaran Rp.20.000 [Khusus gel. II, bisa bayar cash di sekolah]</li>
+                    <li>Foto / Dokumen KIP, PKH, KPS (bagi yang memiliki)</li>
+                    <li>Foto / Dokumen KTP kedua orang tua</li>
+                    <li>Foto / Dokumen Akta Kelahiran</li>
                 </ul>
+            
+            <div style="background: #f0fdf4; border: 1px dashed #047857; padding: 12px 15px; border-radius: 10px; margin-top: 15px;">
+                <p style="font-size: 12px; color: #064e3b; line-height: 1.5; font-weight: 500;">
+                    <strong>Catatan:</strong> Seluruh berkas di atas cukup di-upload melalui website ini (bisa berupa foto maupun file dokumen seperti PDF). Pendaftar online<strong>tidak perlu</strong> membawa berkas fisik berupa kertas ke sekolah.
+                </p>
+            </div>
             </div>
 
             <div class="info-box-card">
@@ -1146,6 +1183,8 @@
                     <li><strong>Praktik Langsung:</strong> Siswa dilatih langsung mengelola bisnis riil di seluruh jaringan Unit Usaha Sekolah.</li>
                     <li><strong>Kesiapan Kerja:</strong> Lulusan memiliki pengalaman kerja nyata yang diakui oleh dunia usaha dan industri.</li>
                     <li><strong>Peluang Wirausaha:</strong> Inkubator bisnis sekolah siap mencetak lulusan menjadi pengusaha muda mandiri.</li>
+                    <li><strong>Sertifikasi Kompetensi:</strong> Siswa mendapatkan kesempatan mengikuti uji kompetensi keahlian resmi bersertifikat nasional.</li>
+                    <li><strong>Kemitraan Industri:</strong> Sekolah bekerja sama dengan berbagai perusahaan terkemuka untuk program magang (PKL) dan penyaluran kerja.</li>
                 </ul>
             </div>
         </div>

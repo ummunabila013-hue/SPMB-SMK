@@ -567,6 +567,8 @@
         .badge-diterima { background-color: #e8f0fe; color: #1a73e8; }
         .badge-lunas { background-color: #e6f4ea; color: #137333; }
         .badge-belum { background-color: #fee2e2; color: #dc2626; }
+        .badge-pending { background-color: #fee2e2; color: #dc2626; }
+        .badge-revisi { background-color: #fef3c7; color: #b45309; }
 
         .action-group {
             display: flex;
@@ -891,8 +893,8 @@
             <div class="sidebar-header">
                 <img src="img/logo.smk.png" alt="Logo SMK" class="logo-sekolah-img" onerror="this.src='https://via.placeholder.com/45';">
                 <div class="school-title">
-                    <h1>SMK Maarif</h1>
-                    <h2>Walisongo Kajoran</h2>
+                    <h1>SMK Ma'arif Walisongo Kajoran</h1>
+                    <h2>SPMB 2027/2028</h2>
                     <span class="admin-tag">Admin Panel</span>
                 </div>
             </div>
@@ -1069,6 +1071,8 @@
                             <option value="">Semua Status</option>
                             <option value="Berkas Diverifikasi">Berkas Diverifikasi</option>
                             <option value="Sedang Diproses">Sedang Diproses</option>
+                            <option value="Pending / Belum Lengkap">Pending / Belum Lengkap</option>
+                            <option value="Perlu Revisi">Perlu Revisi</option>
                             <option value="Diterima">Diterima</option>
                         </select>
                     </div>
@@ -1140,7 +1144,13 @@
 
                     if (namaSingle) {
                         const existIndex = dataList.findIndex(item => (item.noReg === noRegSingle) || (item.nama && item.nama.toLowerCase() === namaSingle.toLowerCase()));
-                        
+
+                        // FIX BUG: sama seperti di seleksi_kelulusan.html — normalizedItem.status
+                        // dulu selalu default ke "Berkas Diverifikasi" dan menimpa status "Diterima"
+                        // yang sudah di-set dari halaman Seleksi & Kelulusan setiap halaman ini dibuka
+                        // ulang. Sekarang status yang sudah tersimpan dipertahankan.
+                        const existingRecord = existIndex !== -1 ? dataList[existIndex] : null;
+
                         const normalizedItem = {
                             id: parsedSingle.id || "1",
                             noReg: noRegSingle,
@@ -1150,8 +1160,8 @@
                             jurusan1: parsedSingle.jurusan1 || parsedSingle.pilihan1 || "PPLG",
                             jurusan2: parsedSingle.jurusan2 || parsedSingle.pilihan2 || "BCF",
                             gelombang: parsedSingle.gelombang || "Gelombang 1",
-                            status: parsedSingle.status || "Berkas Diverifikasi",
-                            statusAdmin: parsedSingle.statusAdmin || "Lunas",
+                            status: (existingRecord && existingRecord.status) || parsedSingle.status || "Berkas Diverifikasi",
+                            metodePembayaran: parsedSingle.metodePembayaran || "",
                             tglDaftar: parsedSingle.tglDaftar || "03 Agu 2026"
                         };
 
@@ -1177,7 +1187,7 @@
                         jurusan2: "BCF", 
                         gelombang: "Gelombang 1", 
                         status: "Berkas Diverifikasi",
-                        statusAdmin: "Lunas",
+                        metodePembayaran: "",
                         tglDaftar: "03 Agu 2026"
                     }
                 ];
@@ -1212,8 +1222,8 @@
             let diterima = 0;
 
             dataList.forEach(item => {
-                const status = (item.status || '').toLowerCase();
-                if (status.includes('diverifikasi') || status.includes('verifikasi')) {
+                const status = (item.statusVerifikasi || item.status || '').toLowerCase();
+                if (status.includes('diverifikasi') && !status.includes('revisi')) {
                     verif++;
                 } else if (status.includes('diterima') || status.includes('lulus')) {
                     diterima++;
@@ -1226,6 +1236,37 @@
             document.getElementById("stat-verif").innerText = verif;
             document.getElementById("stat-proses").innerText = proses;
             document.getElementById("stat-diterima").innerText = diterima;
+        }
+
+        // 2.5 HITUNG STATUS ADMINISTRASI (PEMBAYARAN) SECARA OTOMATIS
+        // - Gelombang 1: tidak dikenakan biaya administrasi -> otomatis "Lunas"
+        // - Gelombang 2 & metode Transfer (via TF): "Lunas" hanya jika admin sudah memverifikasi bukti transfer
+        //   di halaman Verifikasi Berkas (status dokumen "bayar" = terverifikasi/verified)
+        // - Gelombang 2 & metode Cash (bayar langsung di sekolah): "Lunas" hanya jika admin menandai lunas
+        //   secara manual di halaman Verifikasi Berkas (status dokumen "bayar" = lunas)
+        function computeStatusAdmin(siswa, indexFallback) {
+            const gelVal = String(siswa.gelombang || "Gelombang 1");
+            if (!gelVal.includes("2")) return "Lunas";
+
+            const metode = String(siswa.metodePembayaran || localStorage.getItem('metode_pembayaran') || "").toLowerCase();
+
+            // Dibaca per-siswa (berkas_pendaftar_<id>), bukan dari 1 key global untuk semua
+            // siswa — supaya status pembayaran siswa A tidak ikut tertukar ke siswa B.
+            let berkasCurrent = {};
+            try {
+                const idSiswa = siswa.id || (indexFallback !== undefined ? (indexFallback + 1) : "1");
+                berkasCurrent = JSON.parse(localStorage.getItem("berkas_pendaftar_" + idSiswa) || "{}");
+            } catch (e) {
+                berkasCurrent = {};
+            }
+            const statusBayar = (berkasCurrent.statusDokumen && berkasCurrent.statusDokumen.bayar) || "";
+
+            if (metode === "transfer") {
+                return (statusBayar === "terverifikasi" || statusBayar === "verified") ? "Lunas" : "Belum Lunas";
+            } else {
+                // metode "langsung" (cash) atau belum diketahui -> mengikuti konfirmasi manual admin
+                return (statusBayar === "lunas") ? "Lunas" : "Belum Lunas";
+            }
         }
 
         // 3. RENDER TABEL DINAMIS
@@ -1271,24 +1312,36 @@
             }
 
             dataList.forEach((siswa, index) => {
+                // Prioritaskan statusVerifikasi (hasil dari halaman Verifikasi Berkas).
+                // Kalau admin belum pernah memverifikasi berkas siswa ini sama sekali,
+                // baru jatuh ke field status lama (mis. "Aktif" dari form pendaftaran).
+                const statusTampil = siswa.statusVerifikasi || siswa.status || 'Sedang Diproses';
+
                 let badgeClass = "badge-proses";
                 let iconClass = "fa-spinner";
 
-                if (siswa.status === "Berkas Diverifikasi") {
+                if (statusTampil === "Berkas Diverifikasi") {
                     badgeClass = "badge-verif";
                     iconClass = "fa-file-circle-check";
-                } else if (siswa.status === "Diterima") {
+                } else if (statusTampil === "Diterima") {
                     badgeClass = "badge-diterima";
                     iconClass = "fa-circle-check";
+                } else if (statusTampil === "Pending / Belum Lengkap") {
+                    badgeClass = "badge-pending";
+                    iconClass = "fa-clock";
+                } else if (statusTampil === "Perlu Revisi") {
+                    badgeClass = "badge-revisi";
+                    iconClass = "fa-pen-to-square";
                 }
 
-                let badgeAdminClass = siswa.statusAdmin === "Lunas" ? "badge-lunas" : "badge-belum";
-                let iconAdminClass = siswa.statusAdmin === "Lunas" ? "fa-circle-check" : "fa-circle-xmark";
+                const statusAdminSiswa = computeStatusAdmin(siswa, index);
+                let badgeAdminClass = statusAdminSiswa === "Lunas" ? "badge-lunas" : "badge-belum";
+                let iconAdminClass = statusAdminSiswa === "Lunas" ? "fa-circle-check" : "fa-circle-xmark";
 
                 let colAdminTd = isGelombang2 ? `
                     <td>
                         <span class="badge ${badgeAdminClass}">
-                            <i class="fa-solid ${iconAdminClass}"></i> ${siswa.statusAdmin || 'Belum Lunas'}
+                            <i class="fa-solid ${iconAdminClass}"></i> ${statusAdminSiswa}
                         </span>
                     </td>
                 ` : '';
@@ -1302,7 +1355,7 @@
                         <td><span style="font-weight: 600; color: #04352b;">${siswa.jurusan1 || 'PPLG'}</span></td>
                         <td><span style="color: #666;">${siswa.jurusan2 || 'BCF'}</span></td>
                         <td>${siswa.gelombang || 'Gelombang 1'}</td>
-                        <td><span class="badge ${badgeClass}"><i class="fa-solid ${iconClass}"></i> ${siswa.status || 'Sedang Diproses'}</span></td>
+                        <td><span class="badge ${badgeClass}"><i class="fa-solid ${iconClass}"></i> ${statusTampil}</span></td>
                         ${colAdminTd}
                         <td>${siswa.tglDaftar || '03 Agu 2026'}</td>
                         <td class="col-aksi">
@@ -1355,7 +1408,7 @@
 
                 const matchJurusan = filterJurusan === "" || siswa.jurusan1 === filterJurusan || siswa.jurusan2 === filterJurusan;
                 const matchGelombang = filterGelombang === "" || siswa.gelombang === filterGelombang;
-                const matchStatus = filterStatus === "" || (siswa.status || '').toLowerCase().includes(filterStatus.toLowerCase());
+                const matchStatus = filterStatus === "" || (siswa.statusVerifikasi || siswa.status || '').toLowerCase().includes(filterStatus.toLowerCase());
 
                 return matchSearch && matchJurusan && matchGelombang && matchStatus;
             });

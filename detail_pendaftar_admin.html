@@ -803,8 +803,7 @@
                             <div class="field"><span class="field-label">Nama Lengkap</span><span class="field-sep">:</span><span class="field-val" id="val_nama">-</span></div>
                             <div class="field"><span class="field-label">NISN</span><span class="field-sep">:</span><span class="field-val" id="val_nisn">-</span></div>
                             <div class="field"><span class="field-label">Asal Sekolah</span><span class="field-sep">:</span><span class="field-val" id="val_sekolah">-</span></div>
-                            <div class="field"><span class="field-label">Tempat Lahir</span><span class="field-sep">:</span><span class="field-val" id="val_tempatLahir">-</span></div>
-                            <div class="field"><span class="field-label">Tanggal Lahir</span><span class="field-sep">:</span><span class="field-val" id="val_tglLahir">-</span></div>
+                            <div class="field"><span class="field-label">Tempat, Tanggal Lahir</span><span class="field-sep">:</span><span class="field-val" id="val_ttl">-</span></div>
                             <div class="field"><span class="field-label">Jenis Kelamin</span><span class="field-sep">:</span><span class="field-val" id="val_jk">Laki-laki</span></div>
                         </div>
                         <div class="field-list">
@@ -883,9 +882,16 @@
                 <!-- SECTION D: PILIHAN JURUSAN & GELOMBANG -->
                 <div class="section">
                     <div class="section-head"><div class="section-icon"><i class="fa-solid fa-graduation-cap"></i></div><h3 class="section-title">D. Pilihan Jurusan & Gelombang Pendaftaran</h3></div>
-                    <div class="grid-2">
+                    <div class="grid-3">
                         <div class="jurusan-card"><div class="jurusan-eyebrow">Pilihan 1 (Utama)</div><div class="jurusan-code" id="val_j1">PPLG</div></div>
                         <div class="jurusan-card"><div class="jurusan-eyebrow">Pilihan 2 (Kedua)</div><div class="jurusan-code" id="val_j2">BCF</div></div>
+                        <!-- FIX: section ini sebelumnya cuma nampilin 2 kartu jurusan, padahal
+                             judulnya juga nyebut "Gelombang Pendaftaran" — kartu gelombangnya
+                             belum pernah dibuat. Ditambahin di sini. -->
+                        <div class="jurusan-card"><div class="jurusan-eyebrow">Gelombang</div><div class="jurusan-code" id="val_gelombang2">Gelombang 1</div></div>
+                    </div>
+                    <div class="field-list" id="metodePembayaranRow" style="margin-top: 12px; display:none;">
+                        <div class="field"><span class="field-label">Metode Pembayaran (Gel. 2)</span><span class="field-sep">:</span><span class="field-val" id="val_metodePembayaran">-</span></div>
                     </div>
                 </div>
 
@@ -894,6 +900,7 @@
                     <div class="section-head"><div class="section-icon"><i class="fa-solid fa-school"></i></div><h3 class="section-title">E. Data Asal Sekolah</h3></div>
                     <div class="field-list">
                         <div class="field"><span class="field-label">Asal Sekolah</span><span class="field-sep">:</span><span class="field-val" id="val_asalSekolah">SMP N 1 Kajoran</span></div>
+                        <div class="field"><span class="field-label">Nilai Rata-rata Raport</span><span class="field-sep">:</span><span class="field-val" id="val_nilaiRataRata">-</span></div>
                     </div>
                 </div>
 
@@ -906,6 +913,104 @@
     </div>
 
     <script>
+        // Bandingkan record admin (list_pendaftar) dengan data_pendaftaran milik siswa
+        // yang sama di browser ini. Kalau data siswa lebih baru, field yang relevan
+        // ditimpa dengan versi siswa supaya detail yang ditampilkan selalu yang terkini.
+        function mergeWithLatestSiswaData(currentSiswa) {
+            try {
+                const raw = localStorage.getItem('data_pendaftaran');
+                if (!raw) return currentSiswa;
+                const siswaData = JSON.parse(raw);
+
+                // FIX: 'formulir.html' menyimpan nomor pendaftaran dengan nama field "noReg",
+                // bukan "noPendaftaran"/"nomorPendaftaran" — sebelumnya perbandingan ini SELALU
+                // gagal karena salah nama field, jadi pencocokan cuma pernah lewat nama (rapuh).
+                // Sekarang dicocokkan lewat noReg, NISN, atau nama — mana saja yang cocok duluan.
+                const noReg = currentSiswa.noReg || currentSiswa.noPendaftaran;
+                const noRegSiswa = siswaData.noReg || siswaData.noPendaftaran || siswaData.nomorPendaftaran;
+                const nisnAdmin = currentSiswa.nisn;
+                const nisnSiswa = siswaData.nisn;
+                const namaAdmin = (currentSiswa.nama || '').toLowerCase();
+                const namaSiswa = (siswaData.namaLengkap || siswaData.nama || '').toLowerCase();
+
+                const isMatch = (noReg && noRegSiswa && String(noReg) === String(noRegSiswa)) ||
+                                (nisnAdmin && nisnSiswa && String(nisnAdmin) === String(nisnSiswa)) ||
+                                (namaAdmin && namaSiswa && namaAdmin === namaSiswa);
+                if (!isMatch) return currentSiswa;
+
+                const siswaTs = siswaData.lastUpdatedTs || 0;
+                const adminTs = currentSiswa.lastUpdatedTs || 0;
+                if (siswaTs <= adminTs) return currentSiswa;
+
+                return {
+                    ...currentSiswa,
+                    nama: siswaData.nama || siswaData.namaLengkap || currentSiswa.nama,
+                    nisn: siswaData.nisn ?? currentSiswa.nisn,
+                    sekolah: siswaData.asalSekolah ?? currentSiswa.sekolah,
+                    asalSekolah: siswaData.asalSekolah ?? currentSiswa.asalSekolah,
+                    nilaiRataRata: siswaData.nilaiRataRata ?? currentSiswa.nilaiRataRata,
+                    hp: siswaData.hp ?? currentSiswa.hp,
+                    tempatLahir: siswaData.tempatLahir ?? currentSiswa.tempatLahir,
+                    tglLahir: siswaData.tglLahir ?? currentSiswa.tglLahir,
+                    tinggi: siswaData.tinggi ?? currentSiswa.tinggi,
+                    berat: siswaData.berat ?? currentSiswa.berat,
+                    saudara: siswaData.jumlahSaudara ?? currentSiswa.saudara,
+                    agama: siswaData.agama ?? currentSiswa.agama,
+                    jk: siswaData.jenisKelamin ?? currentSiswa.jk,
+                    kebutuhanKhusus: siswaData.kebutuhanKhusus === 'ya' ? 'Ya' : (siswaData.kebutuhanKhusus === 'tidak' ? 'Tidak' : currentSiswa.kebutuhanKhusus),
+                    penerimaKps: siswaData.penerimaKps ?? currentSiswa.penerimaKps,
+                    jenisKartu: siswaData.jenisKartu ?? currentSiswa.jenisKartu,
+                    namaAyah: siswaData.namaAyah ?? currentSiswa.namaAyah,
+                    pendidikanAyah: siswaData.pendidikanAyah ?? currentSiswa.pendidikanAyah,
+                    pendidikanAyahText: siswaData.pendidikanAyahText ?? currentSiswa.pendidikanAyahText,
+                    pekerjaanAyah: siswaData.pekerjaanAyah ?? currentSiswa.pekerjaanAyah,
+                    tahunAyah: siswaData.tahunAyah ?? currentSiswa.tahunAyah,
+                    penghasilanAyah: siswaData.penghasilanAyah ?? currentSiswa.penghasilanAyah,
+                    penghasilanAyahText: siswaData.penghasilanAyahText ?? currentSiswa.penghasilanAyahText,
+                    hpAyah: siswaData.hpAyah ?? currentSiswa.hpAyah,
+                    khususAyah: siswaData.khususAyah === 'ya' ? 'Ya' : (siswaData.khususAyah === 'tidak' ? 'Tidak' : currentSiswa.khususAyah),
+                    namaIbu: siswaData.namaIbu ?? currentSiswa.namaIbu,
+                    pendidikanIbu: siswaData.pendidikanIbu ?? currentSiswa.pendidikanIbu,
+                    pendidikanIbuText: siswaData.pendidikanIbuText ?? currentSiswa.pendidikanIbuText,
+                    pekerjaanIbu: siswaData.pekerjaanIbu ?? currentSiswa.pekerjaanIbu,
+                    tahunIbu: siswaData.tahunIbu ?? currentSiswa.tahunIbu,
+                    penghasilanIbu: siswaData.penghasilanIbu ?? currentSiswa.penghasilanIbu,
+                    penghasilanIbuText: siswaData.penghasilanIbuText ?? currentSiswa.penghasilanIbuText,
+                    hpIbu: siswaData.hpIbu ?? currentSiswa.hpIbu,
+                    khususIbu: siswaData.khususIbu === 'ya' ? 'Ya' : (siswaData.khususIbu === 'tidak' ? 'Tidak' : currentSiswa.khususIbu),
+                    namaWali: siswaData.namaWali ?? currentSiswa.namaWali,
+                    pendidikanWali: siswaData.pendidikanWali ?? currentSiswa.pendidikanWali,
+                    pendidikanWaliText: siswaData.pendidikanWaliText ?? currentSiswa.pendidikanWaliText,
+                    pekerjaanWali: siswaData.pekerjaanWali ?? currentSiswa.pekerjaanWali,
+                    penghasilanWali: siswaData.penghasilanWali ?? currentSiswa.penghasilanWali,
+                    penghasilanWaliText: siswaData.penghasilanWaliText ?? currentSiswa.penghasilanWaliText,
+                    hpWali: siswaData.hpWali ?? currentSiswa.hpWali,
+                    provinsi: siswaData.provinsi ?? currentSiswa.provinsi,
+                    provinsiText: siswaData.provinsiText ?? currentSiswa.provinsiText,
+                    kabupaten: siswaData.kabupaten ?? currentSiswa.kabupaten,
+                    kabupatenText: siswaData.kabupatenText ?? currentSiswa.kabupatenText,
+                    kecamatan: siswaData.kecamatan ?? currentSiswa.kecamatan,
+                    kecamatanText: siswaData.kecamatanText ?? currentSiswa.kecamatanText,
+                    kelurahan: siswaData.kelurahan ?? currentSiswa.kelurahan,
+                    kelurahanText: siswaData.kelurahanText ?? currentSiswa.kelurahanText,
+                    kodePos: siswaData.kodePos ?? currentSiswa.kodePos,
+                    alamatLengkap: siswaData.alamatLengkap ?? currentSiswa.alamatLengkap,
+                    rtRw: (siswaData.rt || siswaData.rw) ? `RT ${siswaData.rt || '-'} / RW ${siswaData.rw || '-'}` : currentSiswa.rtRw,
+                    jenisTinggal: siswaData.jenisTinggal ?? currentSiswa.jenisTinggal,
+                    transportasi: siswaData.transportasi ?? currentSiswa.transportasi,
+                    jarakSekolah: siswaData.jarakSekolah ?? currentSiswa.jarakSekolah,
+                    jurusan1: siswaData.jurusan1 ?? currentSiswa.jurusan1,
+                    jurusan2: siswaData.jurusan2 ?? currentSiswa.jurusan2,
+                    gelombang: siswaData.gelombang ?? currentSiswa.gelombang,
+                    metodePembayaran: siswaData.metodePembayaran ?? currentSiswa.metodePembayaran,
+                    lastUpdatedTs: siswaTs
+                };
+            } catch (e) {
+                console.error('Gagal menggabungkan data siswa terbaru:', e);
+                return currentSiswa;
+            }
+        }
+
         function loadPendaftarData() {
             const urlParams = new URLSearchParams(window.location.search);
             const siswaId = urlParams.get('id');
@@ -923,7 +1028,7 @@
                 currentSiswa = {
                     id: "1", nama: "Calon Siswa 1", nisn: "0081234567", noReg: "SPMB-2027-0001", sekolah: "SMP N 1 Kajoran",
                     jurusan1: "PPLG", jurusan2: "BCF", gelombang: "Gelombang 1", status: "Aktif", tglDaftar: "03 Agu 2026",
-                    tempatLahir: "Magelang", tglLahir: "20 Mei 2008", jk: "Laki-laki", hp: "081234567890", fisik: "165 cm / 55 kg",
+                    tempatLahir: "Magelang", tglLahir: "20 Mei 2008", jk: "Laki-laki", hp: "081234567890", fisik: "165 cm / 55 kg", nilaiRataRata: "",
                     saudara: "2", agama: "Islam", kebutuhanKhusus: "Tidak", kpsKip: "Tidak", namaAyah: "Budi Santoso",
                     pendidikanAyah: "SMA / MA / SMK", pekerjaanAyah: "Wiraswasta", tahunAyah: "1978", penghasilanAyah: "Rp 2.000.000 - Rp 4.999.999",
                     hpAyah: "081223344556", khususAyah: "Tidak", namaIbu: "Siti Aminah", pendidikanIbu: "SMA / MA / SMK", pekerjaanIbu: "Ibu Rumah Tangga",
@@ -934,6 +1039,12 @@
                 };
             }
 
+            // Jaga-jaga: edit_data_siswa.html dan edit_pendaftar_admin.html sudah
+            // saling sinkron otomatis, tapi kalau untuk suatu alasan data siswa
+            // (data_pendaftaran) di browser ini ternyata lebih baru dari yang ada
+            // di list_pendaftar, tetap tampilkan versi yang paling baru itu di sini.
+            currentSiswa = mergeWithLatestSiswaData(currentSiswa);
+
             document.getElementById('val_namaHeader').innerText = currentSiswa.nama || "-";
             document.getElementById('val_subHeader').innerText = `NISN: ${currentSiswa.nisn || '-'} — ${currentSiswa.sekolah || currentSiswa.asalSekolah || '-'}`;
             document.getElementById('val_nama').innerText = currentSiswa.nama || "-";
@@ -941,52 +1052,84 @@
             document.getElementById('val_noReg').innerText = currentSiswa.noReg || currentSiswa.noPendaftaran || "-";
             document.getElementById('val_sekolah').innerText = currentSiswa.sekolah || currentSiswa.asalSekolah || "-";
             document.getElementById('val_asalSekolah').innerText = currentSiswa.sekolah || currentSiswa.asalSekolah || "-";
+            document.getElementById('val_nilaiRataRata').innerText = (currentSiswa.nilaiRataRata !== undefined && currentSiswa.nilaiRataRata !== null && currentSiswa.nilaiRataRata !== "")
+                ? currentSiswa.nilaiRataRata
+                : (currentSiswa.nilaiAkhir || "-");
             document.getElementById('val_j1').innerText = currentSiswa.jurusan1 || currentSiswa.j1 || "PPLG";
             document.getElementById('val_j2').innerText = currentSiswa.jurusan2 || currentSiswa.j2 || "BCF";
             document.getElementById('val_gelombang').innerText = currentSiswa.gelombang || "Gelombang 1";
+            document.getElementById('val_gelombang2').innerText = currentSiswa.gelombang || "Gelombang 1";
             document.getElementById('val_status').innerText = currentSiswa.status || "Aktif";
+
+            // Metode Pembayaran cuma relevan untuk Gelombang 2 (lihat formulir.html & berkas_pendaftaran.html).
+            // Nilai yang mungkin tersimpan: "transfer", "langsung"/"cash" (dianggap sama), atau "gratis" (Gel. 1).
+            const metodeRow = document.getElementById('metodePembayaranRow');
+            const isGel2 = String(currentSiswa.gelombang || "").includes("2");
+            if (isGel2) {
+                metodeRow.style.display = 'block';
+                const metode = String(currentSiswa.metodePembayaran || "").toLowerCase();
+                let metodeText = "Belum Dipilih";
+                if (metode === 'transfer') metodeText = "Transfer Bank";
+                else if (metode === 'langsung' || metode === 'cash') metodeText = "Bayar Langsung / Tunai";
+                document.getElementById('val_metodePembayaran').innerText = metodeText;
+            } else {
+                metodeRow.style.display = 'none';
+            }
+
             document.getElementById('val_tglDaftar').innerText = currentSiswa.tglDaftar || "03 Agu 2026";
-            document.getElementById('val_tempatLahir').innerText = currentSiswa.tempatLahir || "-";
-            document.getElementById('val_tglLahir').innerText = currentSiswa.tglLahir || "-";
+            document.getElementById('val_ttl').innerText = (currentSiswa.tempatLahir && currentSiswa.tglLahir)
+                ? `${currentSiswa.tempatLahir}, ${currentSiswa.tglLahir}`
+                : (currentSiswa.tempatLahir || currentSiswa.tglLahir || "-");
             document.getElementById('val_jk').innerText = currentSiswa.jk || currentSiswa.jenisKelamin || "-";
             document.getElementById('val_hp').innerText = currentSiswa.hp || "-";
-            document.getElementById('val_fisik').innerText = currentSiswa.fisik || "-";
+            document.getElementById('val_fisik').innerText = (currentSiswa.tinggi && currentSiswa.berat)
+                ? `${currentSiswa.tinggi} cm / ${currentSiswa.berat} kg`
+                : (currentSiswa.fisik || "-");
             document.getElementById('val_saudara').innerText = currentSiswa.saudara || currentSiswa.jumlahSaudara || "-";
             document.getElementById('val_agama').innerText = currentSiswa.agama || "-";
             document.getElementById('val_kebutuhanKhusus').innerText = currentSiswa.kebutuhanKhusus || "Tidak";
-            document.getElementById('val_kpsKip').innerText = currentSiswa.kpsKip || "Tidak";
+            if (currentSiswa.penerimaKps) {
+                const jenisKartuText = Array.isArray(currentSiswa.jenisKartu) && currentSiswa.jenisKartu.length > 0
+                    ? ` (${currentSiswa.jenisKartu.join(', ')})`
+                    : '';
+                document.getElementById('val_kpsKip').innerText = (currentSiswa.penerimaKps === 'ya' ? 'Ya' : 'Tidak') + jenisKartuText;
+            } else {
+                document.getElementById('val_kpsKip').innerText = currentSiswa.kpsKip || "Tidak";
+            }
 
             // Orang Tua & Wali
             document.getElementById('val_namaAyah').innerText = currentSiswa.namaAyah || "-";
-            document.getElementById('val_pendidikanAyah').innerText = currentSiswa.pendidikanAyah || "-";
+            document.getElementById('val_pendidikanAyah').innerText = currentSiswa.pendidikanAyahText || currentSiswa.pendidikanAyah || "-";
             document.getElementById('val_pekerjaanAyah').innerText = currentSiswa.pekerjaanAyah || "-";
             document.getElementById('val_tahunAyah').innerText = currentSiswa.tahunAyah || "-";
-            document.getElementById('val_penghasilanAyah').innerText = currentSiswa.penghasilanAyah || "-";
+            document.getElementById('val_penghasilanAyah').innerText = currentSiswa.penghasilanAyahText || currentSiswa.penghasilanAyah || "-";
             document.getElementById('val_hpAyah').innerText = currentSiswa.hpAyah || "-";
             document.getElementById('val_khususAyah').innerText = currentSiswa.khususAyah || "Tidak";
 
             document.getElementById('val_namaIbu').innerText = currentSiswa.namaIbu || "-";
-            document.getElementById('val_pendidikanIbu').innerText = currentSiswa.pendidikanIbu || "-";
+            document.getElementById('val_pendidikanIbu').innerText = currentSiswa.pendidikanIbuText || currentSiswa.pendidikanIbu || "-";
             document.getElementById('val_pekerjaanIbu').innerText = currentSiswa.pekerjaanIbu || "-";
             document.getElementById('val_tahunIbu').innerText = currentSiswa.tahunIbu || "-";
-            document.getElementById('val_penghasilanIbu').innerText = currentSiswa.penghasilanIbu || "-";
+            document.getElementById('val_penghasilanIbu').innerText = currentSiswa.penghasilanIbuText || currentSiswa.penghasilanIbu || "-";
             document.getElementById('val_hpIbu').innerText = currentSiswa.hpIbu || "-";
             document.getElementById('val_khususIbu').innerText = currentSiswa.khususIbu || "Tidak";
 
             document.getElementById('val_namaWali').innerText = currentSiswa.namaWali || "-";
-            document.getElementById('val_pendidikanWali').innerText = currentSiswa.pendidikanWali || "-";
+            document.getElementById('val_pendidikanWali').innerText = currentSiswa.pendidikanWaliText || currentSiswa.pendidikanWali || "-";
             document.getElementById('val_pekerjaanWali').innerText = currentSiswa.pekerjaanWali || "-";
-            document.getElementById('val_penghasilanWali').innerText = currentSiswa.penghasilanWali || "-";
+            document.getElementById('val_penghasilanWali').innerText = currentSiswa.penghasilanWaliText || currentSiswa.penghasilanWali || "-";
             document.getElementById('val_hpWali').innerText = currentSiswa.hpWali || "-";
 
             // Alamat
-            document.getElementById('val_provinsi').innerText = currentSiswa.provinsi || "-";
-            document.getElementById('val_kabupaten').innerText = currentSiswa.kabupaten || "-";
-            document.getElementById('val_kecamatan').innerText = currentSiswa.kecamatan || "-";
-            document.getElementById('val_kelurahan').innerText = currentSiswa.kelurahan || "-";
+            document.getElementById('val_provinsi').innerText = currentSiswa.provinsiText || currentSiswa.provinsi || "-";
+            document.getElementById('val_kabupaten').innerText = currentSiswa.kabupatenText || currentSiswa.kabupaten || "-";
+            document.getElementById('val_kecamatan').innerText = currentSiswa.kecamatanText || currentSiswa.kecamatan || "-";
+            document.getElementById('val_kelurahan').innerText = currentSiswa.kelurahanText || currentSiswa.kelurahan || "-";
             document.getElementById('val_kodePos').innerText = currentSiswa.kodePos || "-";
             document.getElementById('val_alamatLengkap').innerText = currentSiswa.alamatLengkap || "-";
-            document.getElementById('val_rtRw').innerText = currentSiswa.rtRw || "-";
+            document.getElementById('val_rtRw').innerText = (currentSiswa.rt || currentSiswa.rw)
+                ? `RT ${currentSiswa.rt || '-'} / RW ${currentSiswa.rw || '-'}`
+                : (currentSiswa.rtRw || "-");
             document.getElementById('val_jenisTinggal').innerText = currentSiswa.jenisTinggal || "-";
             document.getElementById('val_transportasi').innerText = currentSiswa.transportasi || "-";
             document.getElementById('val_jarakSekolah').innerText = currentSiswa.jarakSekolah || "-";
